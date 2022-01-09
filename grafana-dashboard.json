@@ -1,0 +1,455 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 3,
+  "iteration": 1641729559766,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select \n    $__time(timestamp), power\nfrom 'shelly_meter1'\nwhere device = '$device'\n      and idx = '$idx'\n      and is_valid = true\n      and $__timeFilter(timestamp)",
+          "refId": "power",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select\n    time, \n    (case when power_is_ordered then (\n        (((power_max-power_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0\n    ) else null end) as avgPowerInThePrecedingQuarterHour\nfrom (\n    select\n        timestamp as time,\n        first(total) as power_min,\n        last(total) as power_max,\n        isOrdered(cast(total AS long)) as power_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from 'shelly_meter1' t1\n        inner join 'shelly_meter1' t2\n            on \n                t1.device = t2.device\n                and t1.idx = t2.idx\n                and t1.is_valid = t2.is_valid\n                and t2.timestamp between dateadd('m', -15, t1.timestamp) and t1.timestamp\n        where\n            t1.device = '$device'\n            and t1.idx = '$idx'\n            and t1.is_valid = true\n            and $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
+          "refId": "avgPowerInThePrecedingQuarterHour",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select\n    time, \n    (case when power_is_ordered then (\n        (((power_max-power_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0\n    ) else null end) as avgPowerInThePrecedingHour\nfrom (\n    select\n        timestamp as time,\n        first(total) as power_min,\n        last(total) as power_max,\n        isOrdered(cast(total AS long)) as power_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from 'shelly_meter1' t1\n        inner join 'shelly_meter1' t2\n            on \n                t1.device = t2.device\n                and t1.idx = t2.idx\n                and t1.is_valid = t2.is_valid\n                and t2.timestamp between dateadd('h', -1, t1.timestamp) and t1.timestamp\n        where\n            t1.device = '$device'\n            and t1.idx = '$idx'\n            and t1.is_valid = true\n            and $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
+          "refId": "avgPowerInThePrecedingHour",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": true,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select time, \n    (case when power_is_ordered then (\n        (((power_max-power_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0\n    ) else null end) as avgPowerInThePrecedingQuarterHour2\nfrom(\n    select\n        t1.timestamp as time,\n        first(t2.total) as power_min,\n        last(t2.total) as power_max,\n        isOrdered(cast(t2.total AS long)) as power_is_ordered,\n        first(t2.timestamp) as timestamp_min,\n        last(t2.timestamp) as timestamp_max\n    from 'shelly_meter1' t1\n    inner join 'shelly_meter1' t2\n        on \n            t1.device = t2.device\n            and t1.idx = t2.idx\n            and t1.is_valid = t2.is_valid\n            and t2.timestamp between dateadd('m', -15, t1.timestamp) and t1.timestamp\n    where\n        t1.device = '$device'\n        and t1.idx = '$idx'\n        and t1.is_valid = true\n        and $__timeFilter(t1.timestamp)\n    group by time\n)",
+          "refId": "avgPowerInThePrecedingQuarterHour2",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": true,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select time, \n    (case when power_is_ordered then (\n        (((power_max-power_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0\n    ) else null end) as avgPowerInThePrecedingHour2\nfrom(\n    select\n        t1.timestamp as time,\n        first(t2.total) as power_min,\n        last(t2.total) as power_max,\n        isOrdered(cast(t2.total AS long)) as power_is_ordered,\n        first(t2.timestamp) as timestamp_min,\n        last(t2.timestamp) as timestamp_max\n    from 'shelly_meter1' t1\n    inner join 'shelly_meter1' t2\n        on \n            t1.device = t2.device\n            and t1.idx = t2.idx\n            and t1.is_valid = t2.is_valid\n            and t2.timestamp between dateadd('h', -1, t1.timestamp) and t1.timestamp\n    where\n        t1.device = '$device'\n        and t1.idx = '$idx'\n        and t1.is_valid = true\n        and $__timeFilter(t1.timestamp)\n    group by time\n)",
+          "refId": "avgPowerInThePrecedingHour2",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "title": "$device power",
+      "type": "timeseries"
+    },
+    {
+      "aliasColors": {
+        "overtemperature": "#EAB839"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "hiddenSeries": false,
+      "id": 4,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "8.3.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "overtemperature",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select \n    $__time(timestamp), avg(tc) as tc, (case when overtemperature then 1 else 0 end) as overtemperature\nfrom 'shelly_temperature1'\nwhere device = '$device'\n      and is_valid = true\n      and $__timeFilter(timestamp)\nsample by $__interval\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "$device temperature",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:156",
+          "format": "celsius",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:157",
+          "decimals": 0,
+          "format": "bool",
+          "logBase": 1,
+          "max": "1",
+          "min": "0",
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    }
+  ],
+  "refresh": false,
+  "schemaVersion": 34,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "default",
+          "value": "default"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "postgres",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "$device",
+          "value": "$device"
+        },
+        "definition": "select distinct device from 'shelly_meter1'\n",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "device",
+        "options": [],
+        "query": "select distinct device from 'shelly_meter1'\n",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "0",
+          "value": "0"
+        },
+        "definition": "select distinct idx from 'shelly_meter1' where device = '$device'",
+        "description": "",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "idx",
+        "options": [],
+        "query": "select distinct idx from 'shelly_meter1' where device = '$device'",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "shelly1",
+  "uid": "shelly1",
+  "version": 1,
+  "weekStart": ""
+}
