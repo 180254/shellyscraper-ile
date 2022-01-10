@@ -17,7 +17,7 @@ The solution consists of:
 ## configuration
 
 * Assign a fixed IP address to your Shelly Plug S device(s) on your router.
-* Complete scraper.py script (somewhere at the beginning is the config section).
+* Complete `shelly_scraper.py` script (somewhere at the beginning is the config section).
 * Create a docker network and docker volumes for data storage.
 
 ```shell
@@ -57,7 +57,7 @@ docker run -d --restart=unless-stopped \
 ```
 
 * Log in to grafana (admin:admin), add datasource (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and import
-  dashboard (`shelly-dashboard.json`).
+  dashboard (`grafana-dashboard.json`).
 * Secure the solution (some passwords?, firewall rules?) if this is to be available outside your home network.
 
 ## other things worth mentioning
