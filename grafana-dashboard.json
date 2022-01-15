@@ -22,7 +22,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 8,
-  "iteration": 1642277422231,
+  "iteration": 1642279384354,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -289,7 +289,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and $__timeFilter(timestamp)\n    ),\n    interval_s as (\n        select (case\n            when '$interval' like '%s' then cast(left('$interval', -1) as int)*1\n            when '$interval' like '%m' then cast(left('$interval', -1) as int)*60\n            when '$interval' like '%h' then cast(left('$interval', -1) as int)*3600\n            when '$interval' like '%d' then cast(left('$interval', -1) as int)*86400\n            else 0 end\n        ) as value\n    )\nselect timestamp as time, nsum(consumption)*(1.0/60.0) as value\nfrom (\n    select t1.timestamp, \n    (case\n        when datediff('s', t1.timestamp, t2.timestamp) > interval_s.value then null\n        when t1.total >= t2.total then t1.total-t2.total\n        else null end) as consumption\n    from shelly_meter1b t1\n    lt join shelly_meter1b t2\n    cross join interval_s\n)\nsample by $interval align to calendar ",
+          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and $__timeFilter(timestamp)\n    ),\n    interval_s as (\n        select (case\n            when '$interval' like '%s' then cast(left('$interval', -1) as int)*1\n            when '$interval' like '%m' then cast(left('$interval', -1) as int)*60\n            when '$interval' like '%h' then cast(left('$interval', -1) as int)*3600\n            when '$interval' like '%d' then cast(left('$interval', -1) as int)*86400\n            when '$interval' like '%w' then cast(left('$interval', -1) as int)*604800\n            when '$interval' like '%M' then cast(left('$interval', -1) as int)*2678400\n            when '$interval' like '%y' then cast(left('$interval', -1) as int)*31536000\n            else 0 end\n        ) as value\n    )\nselect timestamp as time, nsum(consumption)*(1.0/60.0) as value\nfrom (\n    select t1.timestamp, \n    (case\n        when datediff('s', t1.timestamp, t2.timestamp) > interval_s.value then null\n        when t1.total >= t2.total then t1.total-t2.total\n        else null end) as consumption\n    from shelly_meter1b t1\n    lt join shelly_meter1b t2\n    cross join interval_s\n)\nsample by $interval align to calendar ",
           "refId": "value",
           "select": [
             [
@@ -907,6 +907,6 @@
   "timezone": "browser",
   "title": "shelly1",
   "uid": "shelly1",
-  "version": 60,
+  "version": 64,
   "weekStart": ""
 }
