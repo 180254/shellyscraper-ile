@@ -22,7 +22,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 8,
-  "iteration": 1642279384354,
+  "iteration": 1643783222997,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -289,7 +289,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and $__timeFilter(timestamp)\n    ),\n    interval_s as (\n        select (case\n            when '$interval' like '%s' then cast(left('$interval', -1) as int)*1\n            when '$interval' like '%m' then cast(left('$interval', -1) as int)*60\n            when '$interval' like '%h' then cast(left('$interval', -1) as int)*3600\n            when '$interval' like '%d' then cast(left('$interval', -1) as int)*86400\n            when '$interval' like '%w' then cast(left('$interval', -1) as int)*604800\n            when '$interval' like '%M' then cast(left('$interval', -1) as int)*2678400\n            when '$interval' like '%y' then cast(left('$interval', -1) as int)*31536000\n            else 0 end\n        ) as value\n    )\nselect timestamp as time, nsum(consumption)*(1.0/60.0) as value\nfrom (\n    select t1.timestamp, \n    (case\n        when datediff('s', t1.timestamp, t2.timestamp) > interval_s.value then null\n        when t1.total >= t2.total then t1.total-t2.total\n        else null end) as consumption\n    from shelly_meter1b t1\n    lt join shelly_meter1b t2\n    cross join interval_s\n)\nsample by $interval align to calendar ",
+          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and $__timeFilter(timestamp)\n    ),\n    interval_s as (\n        select (case\n            when '$interval' like '%s' then cast(left('$interval', -1) as int)*1\n            when '$interval' like '%m' then cast(left('$interval', -1) as int)*60\n            when '$interval' like '%h' then cast(left('$interval', -1) as int)*3600\n            when '$interval' like '%d' then cast(left('$interval', -1) as int)*86400\n            when '$interval' like '%w' then cast(left('$interval', -1) as int)*604800\n            when '$interval' like '%M' then cast(left('$interval', -1) as int)*2678400\n            when '$interval' like '%y' then cast(left('$interval', -1) as int)*31536000\n            else 0 end\n        ) as value\n    )\nselect timestamp as time, nsum(consumption)*(1.0/60.0) as value\nfrom (\n    select t1.timestamp, \n    (case\n        when datediff('s', t1.timestamp, t2.timestamp) > interval_s.value then null\n        when t1.total >= t2.total then t1.total-t2.total\n        else null end) as consumption\n    from shelly_meter1b t1\n    lt join shelly_meter1b t2\n    cross join interval_s\n)\nsample by $interval fill(null) align to calendar ",
           "refId": "value",
           "select": [
             [
@@ -533,7 +533,51 @@
           },
           "unit": "watt"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "average"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "power",
+                  "average"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 9,
@@ -563,7 +607,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(power) as power\nfrom 'shelly_meter1'\nwhere\n    device = '$device'\n    and idx = '$idx'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval",
+          "rawSql": "select \n    timestamp as time,\n    avg(power) as power\nfrom 'shelly_meter1'\nwhere\n    device = '$device'\n    and idx = '$idx'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "power",
           "select": [
             [
@@ -594,8 +638,8 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and timestamp between dateadd('m', -15, $__timeFrom()) and $__timeTo()\n    )\nselect\n    time, \n    (case\n        when total_is_ordered then ((((total_max-total_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0)\n        else null end\n    ) as avgPowerInThePrecedingQuarterHour\nfrom (\n    select\n        timestamp as time,\n        first(total) as total_min,\n        last(total) as total_max,\n        isOrdered(cast(total AS long)) as total_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from shelly_meter1b t1\n        inner join shelly_meter1b t2\n        on t2.timestamp between dateadd('m', -15, t1.timestamp) and t1.timestamp\n        where $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
-          "refId": "avgPowerInThePrecedingQuarterHour",
+          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where\n          $__interval_ms <= 300000\n          and device = '$device' and idx = '$idx' and is_valid = true\n          and timestamp between dateadd('m', -15, $__timeFrom()) and $__timeTo()\n    )\nselect\n    time, \n    (case\n        when total_is_ordered then ((((total_max-total_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0)\n        else null end\n    ) as 15minutesRollingAverage\nfrom (\n    select\n        timestamp as time,\n        first(total) as total_min,\n        last(total) as total_max,\n        isOrdered(cast(total AS long)) as total_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from shelly_meter1b t1\n        inner join shelly_meter1b t2\n        on t2.timestamp between dateadd('m', -15, t1.timestamp) and t1.timestamp\n        where $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
+          "refId": "15minutesRollingAverage",
           "select": [
             [
               {
@@ -625,8 +669,39 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and timestamp between dateadd('m', -60, $__timeFrom()) and $__timeTo()\n    )\nselect\n    time, \n    (case\n        when total_is_ordered then ((((total_max-total_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0)\n        else null end\n    ) as avgPowerInThePrecedingHour\nfrom (\n    select\n        timestamp as time,\n        first(total) as total_min,\n        last(total) as total_max,\n        isOrdered(cast(total AS long)) as total_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from shelly_meter1b t1\n        inner join shelly_meter1b t2\n        on t2.timestamp between dateadd('m', -60, t1.timestamp) and t1.timestamp\n        where $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
-          "refId": "avgPowerInThePrecedingHour",
+          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where\n          $__interval_ms <= 600000\n          and device = '$device' and idx = '$idx' and is_valid = true\n          and timestamp between dateadd('m', -60, $__timeFrom()) and $__timeTo()\n    )\nselect\n    time, \n    (case\n        when total_is_ordered then ((((total_max-total_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0)\n        else null end\n    ) as 1hourRollingAverage\nfrom (\n    select\n        timestamp as time,\n        first(total) as total_min,\n        last(total) as total_max,\n        isOrdered(cast(total AS long)) as total_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from shelly_meter1b t1\n        inner join shelly_meter1b t2\n        on t2.timestamp between dateadd('m', -60, t1.timestamp) and t1.timestamp\n        where $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
+          "refId": "1hourRollingAverage",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "with\n    shelly_meter1b as (\n        select timestamp, total\n        from 'shelly_meter1'\n        where device = '$device' and idx = '$idx' and is_valid = true and $__timeFilter(timestamp)\n    ),\n    far_dates_t as (\n      select \n        cast($__unixEpochTo()*1000000L as timestamp) as timestamp_max,\n        cast($__unixEpochFrom()*1000000L as timestamp) as timestamp_min\n    ),\n    consumption_Wm_t as (\n        select\n            cast(0 as timestamp) as time,\n            nsum(consumption) as value\n        from (\n            select (case when t1.total >= t2.total then t1.total-t2.total else null end) as consumption\n            from shelly_meter1b t1\n            lt join shelly_meter1b t2\n        )\n    ),\n    average_t as (\n        select\n            cast(0 as timestamp) as time,\n            (value*1.0/datediff('m', timestamp_min, timestamp_max)) as value\n        from consumption_Wm_t\n        cross join far_dates_t\n    )\nselect timestamp_max as time, value as average from average_t cross join far_dates_t\nunion\nselect timestamp_min as time, value as average from average_t cross join far_dates_t\n",
+          "refId": "average",
           "select": [
             [
               {
@@ -757,7 +832,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(tc) as tc,\n    (case when overtemperature then 1 else 0 end) as overtemperature\nfrom 'shelly_temperature1'\nwhere\n    device = '$device'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval",
+          "rawSql": "select \n    timestamp as time,\n    avg(tc) as tc,\n    (1-max(cast(overtemperature as INT))) as overtemperature\nfrom 'shelly_temperature1'\nwhere\n    device = '$device'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "value",
           "select": [
             [
@@ -907,6 +982,6 @@
   "timezone": "browser",
   "title": "shelly1",
   "uid": "shelly1",
-  "version": 64,
+  "version": 99,
   "weekStart": ""
 }
