@@ -22,11 +22,15 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 8,
-  "iteration": 1656845838359,
+  "iteration": 1656846339578,
   "links": [],
   "liveNow": false,
   "panels": [
     {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${datasource}"
+      },
       "description": "last measurement",
       "fieldConfig": {
         "defaults": {
@@ -81,7 +85,7 @@
         {
           "datasource": {
             "type": "postgres",
-            "uid": "oK35xU0nk"
+            "uid": "${datasource}"
           },
           "format": "time_series",
           "group": [],
@@ -1069,6 +1073,6 @@
   "timezone": "browser",
   "title": "shelly1",
   "uid": "shelly1",
-  "version": 106,
+  "version": 107,
   "weekStart": ""
 }
