@@ -1,6 +1,6 @@
-# shellyplug-ilepradu
+# shellyscraper
 
-Scrape the data from Shelly Plug (S), insert them into QuestDB, and visualize the data in Grafana.
+Scrape the data from Shelly Plug (S) and Shelly H&T, insert them into QuestDB, and visualize the data in Grafana.
 
 <img src="screenshot1.png" alt="screenshot1" width="1000" />
 
@@ -8,7 +8,7 @@ Scrape the data from Shelly Plug (S), insert them into QuestDB, and visualize th
 
 The solution consists of:
 
-* Shelly Plug/Shelly Plug S (the device you must buy)
+* Shelly Plug/Shelly Plug S/Shelly H&T (the device you must buy)
 * QuestDB (database)
 * Grafana (data visualization tool)
 * scraper (a custom script that retrieves data using a device API and inserts them into the database)
@@ -16,14 +16,14 @@ The solution consists of:
 
 ## configuration
 
-* Assign a fixed IP address to your Shelly Plug S device(s) on your router.
-* Complete `shelly_scraper.py` script (somewhere at the beginning is the config section).
+* Assign a fixed IP address to your Shelly device(s) on your router.
+* Complete the `shellyscraper.py` script (somewhere at the beginning is the config section).
 * Create a docker network and docker volumes for data storage.
 
 ```shell
-docker network create --subnet=192.168.130.0/24 ilepradu
-docker volume create ilepradu-questdb-data
-docker volume create ilepradu-grafana-data
+docker network create --subnet=192.168.130.0/24 shellyscraper
+docker volume create shellyscraper-questdb-data
+docker volume create shellyscraper-grafana-data
 ```
 
 * Run everything that the solution consists of:
@@ -31,33 +31,45 @@ docker volume create ilepradu-grafana-data
 ```shell
 # https://questdb.io/docs/reference/configuration/#docker
 docker run -d --restart=unless-stopped \
-    --net ilepradu --ip 192.168.130.10 \
-    --name=ilepradu-questdb \
+    --net shellyscraper --ip 192.168.130.10 \
+    --name=shellyscraper-questdb \
     -p 9000:9000 -p 9009:9009 -p 8812:8812 -p 9003:9003 \
-    -v ilepradu-questdb-data:/root/.questdb/ \
+    -v shellyscraper-questdb-data:/root/.questdb/ \
     questdb/questdb:6.5.2
 ```
 
 ```shell
 # https://grafana.com/docs/grafana/latest/installation/docker/
 docker run -d --restart=unless-stopped \
-    --net ilepradu --ip 192.168.130.11 \
-    --name=ilepradu-grafana \
+    --net shellyscraper --ip 192.168.130.11 \
+    --name=shellyscraper-grafana \
     -p 3000:3000 \
-    -v ilepradu-grafana-data:/var/lib/grafana \
+    -v shellyscraper-grafana-data:/var/lib/grafana \
     grafana/grafana-oss:8.5.13
 ```
 
 ```shell
-docker build -t "ilepradu:0.0.1" -f Dockerfile .
+docker build -t "shellyscraper:0.0.1" -f Dockerfile .
+```
+
+```shell
+# questdb_address - ip_address:port (e.g. 192.168.130.10:9009)
+# device_id       - some id (e.g. dev0)
+# device_ip       - ip_address (e.g. 192.168.50.178)
+# device_type     - one of plug, plugs, ht
 docker run -d --restart=unless-stopped \
-    --net ilepradu --ip 192.168.130.12 \
-    --name=ilepradu-scraper \
-    ilepradu:0.0.1
+    --net shellyscraper \
+    --name=shellyscraper-scraper-<device_id> \
+    shellyscraper:0.0.1 <questdb_address> <device_id> <device_ip> <device_type>
+# e.g.
+docker run -d --restart=unless-stopped \
+    --net shellyscraper \
+    --name=shellyscraper-scraper-dev0 \
+    shellyscraper:0.0.1 192.168.130.10 dev0 192.168.50.178 plugs
 ```
 
 * Log in to grafana (admin:admin), add datasource (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and import
-  dashboard (`grafana-dashboard.json`).
+  dashboard (`grafana-dashboard-shellyplugs1.json`).
 * Secure the solution (some passwords?, firewall rules?) if this is to be available outside your home network.
 
 ## other things worth mentioning

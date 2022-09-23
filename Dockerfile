@@ -13,6 +13,5 @@ FROM gcr.io/distroless/python3-debian11:latest
 USER nonroot
 WORKDIR /app
 COPY --from=build-venv /venv /venv
-COPY shelly_scraper.py /app
-ENTRYPOINT ["/venv/bin/python3", "-u"]
-CMD ["/app/shelly_scraper.py"]
+COPY shellyscraper.py /app
+ENTRYPOINT ["/venv/bin/python3", "-u", "/app/shellyscraper.py"]
