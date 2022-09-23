@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -21,8 +24,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 8,
-  "iteration": 1656846339578,
+  "id": 1,
+  "iteration": 1663879848744,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -80,7 +83,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.5.13",
       "targets": [
         {
           "datasource": {
@@ -162,7 +165,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.5.13",
       "targets": [
         {
           "datasource": {
@@ -246,7 +249,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.5.13",
       "targets": [
         {
           "datasource": {
@@ -366,7 +369,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -453,7 +457,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.5.13",
       "targets": [
         {
           "datasource": {
@@ -537,7 +541,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.5.13",
       "targets": [
         {
           "datasource": {
@@ -684,7 +688,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "multi"
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -909,7 +914,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "multi"
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "pluginVersion": "8.3.3",
@@ -923,7 +929,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(tc) as tc,\n    (1-max(cast(overtemperature as INT))) as overtemperature\nfrom 'shelly_temperature1'\nwhere\n    device = '$device'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
+          "rawSql": "select \n    timestamp as time,\n    avg(tc) as tc,\n    min(cast(overtemperature as INT)) as overtemperature\nfrom 'shelly_temperature1'\nwhere\n    device = '$device'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "value",
           "select": [
             [
@@ -950,14 +956,14 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 34,
+  "schemaVersion": 36,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": [
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "default",
           "value": "default"
         },
@@ -979,6 +985,10 @@
           "text": "dev0",
           "value": "dev0"
         },
+        "datasource": {
+          "type": "postgres",
+          "uid": "${datasource}"
+        },
         "definition": "select distinct device from 'shelly_meter1'\n",
         "hide": 0,
         "includeAll": false,
@@ -997,6 +1007,10 @@
           "selected": false,
           "text": "0",
           "value": "0"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "${datasource}"
         },
         "definition": "select distinct idx from 'shelly_meter1' where device = '$device'",
         "description": "",
@@ -1073,6 +1087,6 @@
   "timezone": "browser",
   "title": "shelly1",
   "uid": "shelly1",
-  "version": 107,
+  "version": 7,
   "weekStart": ""
 }
