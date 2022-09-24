@@ -1,4 +1,4 @@
-# shellyscraper
+# shellyscraper-ile
 
 Scrape the data from Shelly Plug (S) and Shelly H&T, insert them into QuestDB, and visualize the data in Grafana.
 
@@ -21,9 +21,9 @@ The solution consists of:
 * Create a docker network and docker volumes for data storage.
 
 ```shell
-docker network create --subnet=192.168.130.0/24 shellyscraper
-docker volume create shellyscraper-questdb-data
-docker volume create shellyscraper-grafana-data
+docker network create --subnet=192.168.130.0/24 ile
+docker volume create ile-questdb-data
+docker volume create ile-grafana-data
 ```
 
 * Run everything that the solution consists of:
@@ -31,41 +31,39 @@ docker volume create shellyscraper-grafana-data
 ```shell
 # https://questdb.io/docs/reference/configuration/#docker
 docker run -d --restart=unless-stopped \
-    --net shellyscraper --ip 192.168.130.10 \
-    --name=shellyscraper-questdb \
+    --net ile --ip 192.168.130.10 \
+    --name=ile-questdb \
     -p 9000:9000 -p 9009:9009 -p 8812:8812 -p 9003:9003 \
-    -v shellyscraper-questdb-data:/root/.questdb/ \
+    -v ile-questdb-data:/root/.questdb/ \
     questdb/questdb:6.5.2
 ```
 
 ```shell
 # https://grafana.com/docs/grafana/latest/installation/docker/
 docker run -d --restart=unless-stopped \
-    --net shellyscraper --ip 192.168.130.11 \
-    --name=shellyscraper-grafana \
+    --net ile --ip 192.168.130.11 \
+    --name=ile-grafana \
     -p 3000:3000 \
-    -v shellyscraper-grafana-data:/var/lib/grafana \
+    -v ile-grafana-data:/var/lib/grafana \
     grafana/grafana-oss:8.5.13
 ```
 
 ```shell
-docker build -t "shellyscraper:0.0.1" -f Dockerfile .
+docker build -t "sh-sc-ile:0.0.1" -f Dockerfile .
 ```
 
 ```shell
-# questdb_address - ip_address:port (e.g. 192.168.130.10:9009)
-# device_id       - some id (e.g. dev0)
-# device_ip       - ip_address (e.g. 192.168.50.178)
-# device_type     - one of plug, plugs, ht
+# questdb_address - questdb' ip_address:port (e.g. 192.168.130.10:9009)
+# device_ip       - shelly' ip_address (e.g. 192.168.50.178)
 docker run -d --restart=unless-stopped \
-    --net shellyscraper \
-    --name=shellyscraper-scraper-<device_id> \
-    shellyscraper:0.0.1 <questdb_address> <device_id> <device_ip> <device_type>
+    --net ile \
+    --name=ile-scraper-<device_ip> \
+    sh-sc-ile:0.0.1 <questdb_address> <device_ip>
 # e.g.
 docker run -d --restart=unless-stopped \
-    --net shellyscraper \
-    --name=shellyscraper-scraper-dev0 \
-    shellyscraper:0.0.1 192.168.130.10 dev0 192.168.50.178 plugs
+    --net ile \
+    --name=ile-scraper-192-168-50-178  \
+    sh-sc-ile:0.0.1 192.168.130.10:9009 192.168.50.178 
 ```
 
 * Log in to grafana (admin:admin), add datasource (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and import
