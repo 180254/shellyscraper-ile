@@ -21,7 +21,7 @@ The solution consists of:
 * Create a docker network and docker volumes for data storage.
 
 ```shell
-docker network create --subnet=192.168.130.0/24 ile
+docker network create --subnet=192.168.130.0/24 ile-network
 docker volume create ile-questdb-data
 docker volume create ile-grafana-data
 ```
@@ -31,7 +31,7 @@ docker volume create ile-grafana-data
 ```shell
 # https://questdb.io/docs/reference/configuration/#docker
 docker run -d --restart=unless-stopped \
-    --net ile --ip 192.168.130.10 \
+    --net ile-network --ip 192.168.130.10 \
     --name=ile-questdb \
     -p 9000:9000 -p 9009:9009 -p 8812:8812 -p 9003:9003 \
     -v ile-questdb-data:/root/.questdb/ \
@@ -41,7 +41,7 @@ docker run -d --restart=unless-stopped \
 ```shell
 # https://grafana.com/docs/grafana/latest/installation/docker/
 docker run -d --restart=unless-stopped \
-    --net ile --ip 192.168.130.11 \
+    --net ile-network --ip 192.168.130.11 \
     --name=ile-grafana \
     -p 3000:3000 \
     -v ile-grafana-data:/var/lib/grafana \
@@ -56,12 +56,12 @@ docker build -t "sh-sc-ile:0.0.1" -f Dockerfile .
 # questdb_address - questdb' ip_address:port (e.g. 192.168.130.10:9009)
 # device_ip       - shelly' ip_address (e.g. 192.168.50.178)
 docker run -d --restart=unless-stopped \
-    --net ile \
+    --net ile-network \
     --name=ile-scraper-<device_ip> \
     sh-sc-ile:0.0.1 <questdb_address> <device_ip>
 # e.g.
 docker run -d --restart=unless-stopped \
-    --net ile \
+    --net ile-network \
     --name=ile-scraper-192-168-50-178  \
     sh-sc-ile:0.0.1 192.168.130.10:9009 192.168.50.178 
 ```
