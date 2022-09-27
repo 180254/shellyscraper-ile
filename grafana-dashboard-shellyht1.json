@@ -24,8 +24,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 4,
-  "iteration": 1664050286339,
+  "id": 1,
+  "iteration": 1664349027352,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -138,6 +138,8 @@
           "custom": {
             "axisLabel": "",
             "axisPlacement": "auto",
+            "axisSoftMax": 25,
+            "axisSoftMin": 17,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 1,
@@ -450,6 +452,8 @@
             }
           },
           "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -760,6 +764,38 @@
                 "value": "volt"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bat_value"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bat_voltage"
+            },
+            "properties": [
+              {
+                "id": "custom.axisSoftMin",
+                "value": 2
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 3
+              }
+            ]
           }
         ]
       },
@@ -948,8 +984,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-blue",
-                "value": null
+                "color": "super-light-blue"
               }
             ]
           },
@@ -1031,8 +1066,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-blue",
-                "value": null
+                "color": "super-light-blue"
               }
             ]
           },
@@ -1107,8 +1141,8 @@
       {
         "current": {
           "selected": false,
-          "text": "PostgreSQL",
-          "value": "PostgreSQL"
+          "text": "questdb",
+          "value": "questdb"
         },
         "hide": 0,
         "includeAll": false,
@@ -1125,8 +1159,8 @@
       {
         "current": {
           "selected": false,
-          "text": "shelly-ht-0",
-          "value": "shelly-ht-0"
+          "text": "shelly-ht-0-livingroom",
+          "value": "shelly-ht-0-livingroom"
         },
         "datasource": {
           "type": "postgres",
@@ -1144,82 +1178,6 @@
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"
-      },
-      {
-        "current": {
-          "isNone": true,
-          "selected": false,
-          "text": "None",
-          "value": ""
-        },
-        "datasource": {
-          "type": "postgres",
-          "uid": "${datasource}"
-        },
-        "definition": "select distinct idx from 'shelly_plugs_meter1' where device_name = '$device_name' and $__timeFilter(timestamp)",
-        "description": "",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "idx",
-        "options": [],
-        "query": "select distinct idx from 'shelly_plugs_meter1' where device_name = '$device_name' and $__timeFilter(timestamp)",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "auto": false,
-        "auto_count": 1,
-        "auto_min": "1m",
-        "current": {
-          "selected": false,
-          "text": "1h",
-          "value": "1h"
-        },
-        "description": "",
-        "hide": 0,
-        "label": "consumption interval",
-        "name": "interval",
-        "options": [
-          {
-            "selected": false,
-            "text": "10m",
-            "value": "10m"
-          },
-          {
-            "selected": false,
-            "text": "30m",
-            "value": "30m"
-          },
-          {
-            "selected": true,
-            "text": "1h",
-            "value": "1h"
-          },
-          {
-            "selected": false,
-            "text": "1d",
-            "value": "1d"
-          },
-          {
-            "selected": false,
-            "text": "7d",
-            "value": "7d"
-          },
-          {
-            "selected": false,
-            "text": "30d",
-            "value": "30d"
-          }
-        ],
-        "query": "10m,30m,1h,1d,7d,30d",
-        "queryValue": "",
-        "refresh": 2,
-        "skipUrlSync": false,
-        "type": "interval"
       }
     ]
   },
@@ -1231,6 +1189,6 @@
   "timezone": "browser",
   "title": "shellyht1",
   "uid": "shellyht1",
-  "version": 2,
+  "version": 7,
   "weekStart": ""
 }

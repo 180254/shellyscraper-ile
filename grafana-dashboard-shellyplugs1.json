@@ -24,8 +24,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 1,
-  "iteration": 1663879848744,
+  "id": 2,
+  "iteration": 1664348993501,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -963,9 +963,9 @@
     "list": [
       {
         "current": {
-          "selected": true,
-          "text": "default",
-          "value": "default"
+          "selected": false,
+          "text": "questdb",
+          "value": "questdb"
         },
         "hide": 0,
         "includeAll": false,
@@ -982,8 +982,8 @@
       {
         "current": {
           "selected": false,
-          "text": "dev0",
-          "value": "dev0"
+          "text": "shelly-plugs-0-livingroom",
+          "value": "shelly-plugs-0-livingroom"
         },
         "datasource": {
           "type": "postgres",
@@ -1087,6 +1087,6 @@
   "timezone": "browser",
   "title": "shellyplugs1",
   "uid": "shellyplugs1",
-  "version": 8,
+  "version": 4,
   "weekStart": ""
 }

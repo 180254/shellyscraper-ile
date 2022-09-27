@@ -16,7 +16,7 @@ The solution consists of:
 
 ## configuration
 
-* Assign a fixed IP address to your Shelly device(s) on your router.
+* Assign a static IP address to your Shelly device(s) on your router.
 * Complete the `shellyscraper.py` script (somewhere at the beginning is the config section).
 * Create a docker network and docker volumes for data storage.
 
@@ -35,13 +35,13 @@ docker run -d --restart=unless-stopped \
     --name=ile-questdb \
     -p 9000:9000 -p 9009:9009 -p 8812:8812 -p 9003:9003 \
     -v ile-questdb-data:/root/.questdb/ \
-    questdb/questdb:6.5.2
+    questdb/questdb:6.5.3
 ```
 
 ```shell
 # https://grafana.com/docs/grafana/latest/installation/docker/
 docker run -d --restart=unless-stopped \
-    --net ile-network --ip 192.168.130.11 \
+    --net ile-network \
     --name=ile-grafana \
     -p 3000:3000 \
     -v ile-grafana-data:/var/lib/grafana \
@@ -49,26 +49,21 @@ docker run -d --restart=unless-stopped \
 ```
 
 ```shell
-docker build -t "sh-sc-ile:0.0.1" -f Dockerfile .
+docker build -t "ile-shellyscraper:0.0.1" -f Dockerfile .
 ```
 
 ```shell
-# questdb_address - questdb' ip_address:port (e.g. 192.168.130.10:9009)
-# device_ip       - shelly' ip_address (e.g. 192.168.50.178)
 docker run -d --restart=unless-stopped \
     --net ile-network \
-    --name=ile-scraper-<device_ip> \
-    sh-sc-ile:0.0.1 <questdb_address> <device_ip>
-# e.g.
-docker run -d --restart=unless-stopped \
-    --net ile-network \
-    --name=ile-scraper-192-168-50-178  \
-    sh-sc-ile:0.0.1 192.168.130.10:9009 192.168.50.178 
+    --name=ile-shellyscraper \
+    -p 9080:9080 \
+    ile-shellyscraper:0.0.1
 ```
 
-* Log in to grafana (admin:admin), add datasource (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and import
-  dashboards (`grafana-dashboard-shellyplugs1.json`, `grafana-dashboard-shellyht1.json`).
-* Secure the solution (some passwords?, firewall rules?) if this is to be available outside your home network.
+* Log in to grafana (admin:admin), add data source (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and import
+  dashboards (`grafana-dashboard-shellyplugs1.json`, `grafana-dashboard-shellyht1.json`, `grafana-dashboard-shellyht2.json`).
+* Configure your Shelly H&T devices so that the "report sensor values" url is "http://<docker_machine_ip>:9080".
+* Secure the solution (some passwords? firewall rules?) if this is to be available outside your home network.
 
 ## other things worth mentioning
 
