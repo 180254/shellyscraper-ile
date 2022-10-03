@@ -5,6 +5,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 import urllib.parse
 
 import requests
@@ -12,13 +13,7 @@ import requests
 
 class Config:
     questdb_address = ("192.168.130.10", 9009)
-    shellies = {
-        # "device_id": "device_ip"
-        "shellyplug-s-AAAAAA": "192.168.50.101",
-        "shellyplug-s-BBBBBB": "192.168.50.102",
-        "shellyht-CCCCCC": "192.168.50.103",
-        "shellyht-DDDDDD": "192.168.50.104",
-    }
+    shelly_plugs_device_ips = ["192.168.50.101", "192.168.50.102"]
 
     questdb_socket_timeout_seconds = 10
     shelly_api_http_timeout_seconds = 10
@@ -46,6 +41,14 @@ def configure_sigterm_handler():
         signal.signal(some_signal, sigterm_handler)
 
     return sigterm_threading_event
+
+
+def print_exception(e):
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    co_filename = exc_traceback.tb_frame.f_code.co_filename
+    co_name = exc_traceback.tb_frame.f_code.co_name
+    format_exception_only = traceback.format_exception_only(type(e), e)[0].strip()
+    print(f"exception: {co_filename}:{exc_traceback.tb_lineno} ({co_name}) {format_exception_only}")
 
 
 def write_ilp_to_questdb(data):
@@ -160,7 +163,7 @@ def shelly_ht_report_to_ilp(device_id, temp, hum):
     return data
 
 
-def device_status_loop(sigterm_threading_event, device_id, device_ip):
+def device_status_loop(sigterm_threading_event, device_ip):
     backoff_idx = -1
 
     while True:
@@ -180,7 +183,7 @@ def device_status_loop(sigterm_threading_event, device_id, device_ip):
                 break
 
         except BaseException as e:
-            print(str(e))
+            print_exception(e)
             backoff_idx = max(0, min(backoff_idx + 1, len(Config.backoff_strategy_seconds) - 1))
             backoff = Config.backoff_strategy_seconds[backoff_idx]
             if sigterm_threading_event.wait(backoff):
@@ -201,16 +204,15 @@ class ShellyHtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
         if device_id is not None \
                 and temp is not None \
                 and hum is not None:
-            device_ip = Config.shellies.get(device_id, None)
             data = shelly_ht_report_to_ilp(device_id, temp, hum)
 
             try:
-                if device_ip is not None:
-                    # The http connection is still in progress. The H&T device definitely has active wifi.
-                    device_type, device_name = get_device_info(device_ip)
-                    data += get_device_status_ilp(device_ip, device_type, device_name)
+                device_ip = self.client_address[0]
+                # The http connection is still in progress. The H&T device definitely has active wifi.
+                device_type, device_name = get_device_info(device_ip)
+                data += get_device_status_ilp(device_ip, device_type, device_name)
             except BaseException as e:
-                print(str(e))
+                print_exception(e)
 
             # This may already be happening after the connection is closed.
             questdb_thread = threading.Thread(target=write_ilp_to_questdb, args=(data,))
@@ -221,16 +223,13 @@ class ShellyHtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
 def main():
     sigterm_threading_event = configure_sigterm_handler()
 
-    for device_id, device_ip in Config.shellies.items():
-        if device_id.startswith("shellyht"):
-            continue
-        status_thread = threading.Thread(target=device_status_loop,
-                                         args=(sigterm_threading_event, device_id, device_ip,))
+    for device_ip in Config.shelly_plugs_device_ips:
+        status_thread = threading.Thread(target=device_status_loop, args=(sigterm_threading_event, device_ip,))
         status_thread.daemon = False
         status_thread.start()
 
-    ht_report_webhook = http.server.HTTPServer(('0.0.0.0', 9080), ShellyHtReportSensorsValuesHandler)
-    webhook_server_thread = threading.Thread(target=ht_report_webhook.serve_forever)
+    shelly_ht_report_webhook = http.server.HTTPServer(('0.0.0.0', 9080), ShellyHtReportSensorValuesHandler)
+    webhook_server_thread = threading.Thread(target=shelly_ht_report_webhook.serve_forever)
     webhook_server_thread.daemon = True
     webhook_server_thread.start()
 
