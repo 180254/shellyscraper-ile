@@ -31,10 +31,10 @@ def configure_sigterm_handler():
 
         sigterm_cnt[0] += 1
         if sigterm_cnt[0] == 1:
-            print(f"Program interrupted by the {signal_name}, graceful shutdown in progress.")
+            print(f"Program interrupted by the {signal_name}, graceful shutdown in progress.", file=sys.stderr)
             sigterm_threading_event.set()
         else:
-            print(f"Program interrupted by the {signal_name} again, forced shutdown in progress.")
+            print(f"Program interrupted by the {signal_name} again, forced shutdown in progress.", file=sys.stderr)
             sys.exit(-1)
 
     for some_signal in [signal.SIGTERM, signal.SIGINT]:
@@ -48,7 +48,7 @@ def print_exception(e):
     co_filename = exc_traceback.tb_frame.f_code.co_filename
     co_name = exc_traceback.tb_frame.f_code.co_name
     format_exception_only = traceback.format_exception_only(type(e), e)[0].strip()
-    print(f"exception: {co_filename}:{exc_traceback.tb_lineno} ({co_name}) {format_exception_only}")
+    print(f"exception: {co_filename}:{exc_traceback.tb_lineno} ({co_name}) {format_exception_only}", file=sys.stderr)
 
 
 def write_ilp_to_questdb(data):
@@ -68,7 +68,7 @@ def get_device_info(device_ip):
     request = requests.get(f"http://{device_ip}/settings", timeout=Config.shelly_api_http_timeout_seconds)
     request.raise_for_status()
     settings = request.json()
-    # print(json.dumps(settings, separators=(',', ':')))
+    # print(json.dumps(settings, separators=(',', ':')), file=sys.stderr)
 
     device_type = settings["device"]["type"]
     device_name = settings["name"]
@@ -80,7 +80,7 @@ def get_device_status_ilp(device_ip, device_type, device_name):
     request = requests.get(f"http://{device_ip}/status", timeout=Config.shelly_api_http_timeout_seconds)
     request.raise_for_status()
     status = request.json()
-    # print(json.dumps(status, separators=(',', ':')))
+    # print(json.dumps(status, separators=(',', ':')), file=sys.stderr)
 
     # https://shelly-api-docs.shelly.cloud/gen1/#shelly-plug-plugs-coiot
     if device_type in ("SHPLG2-1", "SHPLG-1", "SHPLG-S", "SHPLG-U1"):
@@ -89,6 +89,9 @@ def get_device_status_ilp(device_ip, device_type, device_name):
     # https://shelly-api-docs.shelly.cloud/gen1/#shelly-h-amp-t-coiot
     if device_type == "SHHT-1":
         return shelly_ht_status_to_ilp(device_name, status)
+
+    print(f"get_device_status_ilp: unsupported device_type: {device_type}", file=sys.stderr)
+    return ""
 
 
 def shelly_plugs_status_to_ilp(device_name, status):
