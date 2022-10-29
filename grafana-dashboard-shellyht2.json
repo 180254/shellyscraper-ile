@@ -25,23 +25,10 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 3,
-  "iteration": 1664349041457,
+  "iteration": 1667039980235,
   "links": [],
   "liveNow": false,
   "panels": [
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 15,
-      "panels": [],
-      "title": "temperature",
-      "type": "row"
-    },
     {
       "datasource": {
         "type": "postgres",
@@ -71,7 +58,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 1
+        "y": 0
       },
       "id": 13,
       "options": {
@@ -99,7 +86,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select last(temp) as temp, cast(0 as timestamp) time\nfrom 'shelly_ht_meter2'\nwhere device_id = '$device_id' and $__timeFilter(timestamp)",
+          "rawSql": "select last(temp) as temp, cast(0 as timestamp) as time\nfrom shelly_ht_meter2\nwhere device_id = '$device_id' and $__timeFilter(timestamp)",
           "refId": "A",
           "select": [
             [
@@ -153,7 +140,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 1
+        "y": 0
       },
       "id": 18,
       "options": {
@@ -181,7 +168,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select last(hum) as hum, cast(0 as timestamp) time\nfrom 'shelly_ht_meter2'\nwhere device_id = '$device_id' and $__timeFilter(timestamp)",
+          "rawSql": "select last(hum) as hum, cast(0 as timestamp) as time\nfrom shelly_ht_meter2\nwhere device_id = '$device_id' and $__timeFilter(timestamp)",
           "refId": "A",
           "select": [
             [
@@ -265,7 +252,7 @@
         "h": 8,
         "w": 13,
         "x": 0,
-        "y": 5
+        "y": 4
       },
       "id": 2,
       "options": {
@@ -290,7 +277,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(temp) as temp\nfrom 'shelly_ht_meter2'\nwhere\n    device_id = '$device_id'\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
+          "rawSql": "select \n    timestamp as time,\n    avg(temp) as temp\nfrom shelly_ht_meter2\nwhere\n    device_id = '$device_id'\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "A",
           "select": [
             [
@@ -361,7 +348,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "light-orange",
+                "color": "#6e7d96",
                 "value": null
               }
             ]
@@ -374,7 +361,7 @@
         "h": 8,
         "w": 13,
         "x": 0,
-        "y": 13
+        "y": 12
       },
       "id": 19,
       "options": {
@@ -399,7 +386,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(hum) as hum\nfrom 'shelly_ht_meter2'\nwhere\n    device_id = '$device_id'\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
+          "rawSql": "select \n    timestamp as time,\n    avg(hum) as hum\nfrom shelly_ht_meter2\nwhere\n    device_id = '$device_id'\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "A",
           "select": [
             [
@@ -459,17 +446,17 @@
           "type": "postgres",
           "uid": "${datasource}"
         },
-        "definition": "select distinct device_id from 'shelly_ht_meter2' where $__timeFilter(timestamp)\n",
+        "definition": "select distinct device_id from shelly_ht_meter2 where $__timeFilter(timestamp)\n",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "device_id",
         "options": [],
-        "query": "select distinct device_id from 'shelly_ht_meter2' where $__timeFilter(timestamp)\n",
+        "query": "select distinct device_id from shelly_ht_meter2 where $__timeFilter(timestamp)\n",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 5,
         "type": "query"
       }
     ]
@@ -482,6 +469,6 @@
   "timezone": "browser",
   "title": "shellyht2",
   "uid": "shellyht2",
-  "version": 4,
+  "version": 11,
   "weekStart": ""
 }
