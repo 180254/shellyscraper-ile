@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 1,
-  "iteration": 1667039967496,
+  "iteration": 1668349159160,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -88,7 +88,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -99,7 +99,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select max(tmp_tc) as tmp_tc, cast(0 as timestamp) as time\nfrom (\n    select last(tmp_tc) as tmp_tc, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and tmp_is_valid = true and $__timeFilter(timestamp)\n)\n",
+          "rawSql": "select\n    max(tmp_tc) as tmp_tc,\n    cast(0 as timestamp) as time\nfrom (\n    select last(tmp_tc) as tmp_tc, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and tmp_is_valid = true and $__timeFilter(timestamp)\n)\n",
           "refId": "A",
           "select": [
             [
@@ -281,7 +281,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -376,7 +376,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -387,7 +387,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select max(hum_value), cast(0 as timestamp) as time\nfrom (\n    select last(hum_value) as hum_value, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and hum_is_valid = true and $__timeFilter(timestamp)\n)",
+          "rawSql": "select\n    max(hum_value),\n    cast(0 as timestamp) as time\nfrom (\n    select last(hum_value) as hum_value, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and hum_is_valid = true and $__timeFilter(timestamp)\n)",
           "refId": "A",
           "select": [
             [
@@ -569,7 +569,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -665,7 +665,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -765,7 +765,7 @@
               },
               {
                 "id": "custom.axisSoftMin",
-                "value": 2.5
+                "value": 2
               },
               {
                 "id": "custom.axisSoftMax",
@@ -931,7 +931,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -942,7 +942,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select sum(sensor_error) as sensor_error, cast(0 as timestamp) as time\nfrom (\n    select last(sensor_error) as sensor_error, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and $__timeFilter(timestamp)\n)",
+          "rawSql": "select\n    sum(sensor_error) as sensor_error,\n    cast(0 as timestamp) as time\nfrom (\n    select last(sensor_error) as sensor_error, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and $__timeFilter(timestamp)\n)",
           "refId": "A",
           "select": [
             [
@@ -984,7 +984,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-blue"
+                "color": "super-light-blue",
+                "value": null
               }
             ]
           },
@@ -1013,7 +1014,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -1066,7 +1067,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-blue"
+                "color": "super-light-blue",
+                "value": null
               }
             ]
           },
@@ -1095,7 +1097,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -1106,7 +1108,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select sum(connect_retries) as connect_retries, cast(0 as timestamp) as time\nfrom\n(\n    select last(connect_retries) as connect_retries, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and $__timeFilter(timestamp)\n)",
+          "rawSql": "select\n    sum(connect_retries) as connect_retries,\n    cast(0 as timestamp) as time\nfrom\n(\n    select last(connect_retries) as connect_retries, device_name\n    from shelly_ht_meter1\n    where device_name in ($device_name) and is_valid = true and $__timeFilter(timestamp)\n)",
           "refId": "A",
           "select": [
             [
@@ -1189,6 +1191,6 @@
   "timezone": "browser",
   "title": "shellyht1",
   "uid": "shellyht1",
-  "version": 28,
+  "version": 30,
   "weekStart": ""
 }

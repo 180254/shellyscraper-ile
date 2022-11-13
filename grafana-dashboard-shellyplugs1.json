@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 2,
-  "iteration": 1667039869691,
+  "iteration": 1668348930552,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -83,7 +83,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -165,7 +165,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -249,7 +249,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -457,7 +457,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -541,7 +541,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -1087,6 +1087,6 @@
   "timezone": "browser",
   "title": "shellyplugs1",
   "uid": "shellyplugs1",
-  "version": 11,
+  "version": 12,
   "weekStart": ""
 }

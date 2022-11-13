@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 3,
-  "iteration": 1667039980235,
+  "iteration": 1668349190606,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -75,7 +75,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -157,7 +157,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.13",
+      "pluginVersion": "8.5.14",
       "targets": [
         {
           "datasource": {
@@ -469,6 +469,6 @@
   "timezone": "browser",
   "title": "shellyht2",
   "uid": "shellyht2",
-  "version": 11,
+  "version": 12,
   "weekStart": ""
 }
