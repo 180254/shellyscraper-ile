@@ -1,5 +1,6 @@
 #!venv/bin/python3
 import http.server
+import os
 import signal
 import socket
 import sys
@@ -12,8 +13,13 @@ import requests
 
 
 class Config:
-    questdb_address = ("192.168.130.10", 9009)
-    shelly_plugs_device_ips = ["192.168.50.101", "192.168.50.102"]
+    # ILE_QUESTDB_ADDRESS=ipv4host:port
+    questdb_address = (
+        os.environ.get("ILE_QUESTDB_ADDRESS").split(':', 1)[0],
+        int(os.environ.get("ILE_QUESTDB_ADDRESS").split(':', 1)[1])
+    )
+    # ILE_SHELLY_PLUGS=comma-separated list of IPs
+    shelly_plugs_device_ips = list(filter(None, os.environ.get("ILE_SHELLY_PLUGS", "").split(",")))
 
     questdb_socket_timeout_seconds = 10
     shelly_api_http_timeout_seconds = 10
@@ -224,6 +230,8 @@ class ShellyHtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
+    print("Config" + str(vars(Config)), file=sys.stderr)
+
     sigterm_threading_event = configure_sigterm_handler()
 
     for device_ip in Config.shelly_plugs_device_ips:
