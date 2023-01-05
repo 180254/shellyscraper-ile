@@ -52,14 +52,14 @@ docker run -d --restart=unless-stopped \
 docker build -t "ile-shellyscraper:0.0.1" -f Dockerfile .
 ```
 
-As the value of the ILE_SHELLY_PLUGS env, enter the comma-separated list of IPs assigned to your Shelly Plug (S) devices.
+As the value of the ILE_SHELLY_GEN1_PLUGS env, enter the comma-separated list of IPs assigned to your Shelly Plug (S) devices.
 ```shell
 docker run -d --restart=unless-stopped \
     --net ile-network \
     --name=ile-shellyscraper \
     -p 9080:9080 \
     -e ILE_QUESTDB_ADDRESS=192.168.130.10:9009 \
-    -e ILE_SHELLY_PLUGS=192.168.50.101,192.168.50.102 \
+    -e ILE_SHELLY_GEN1_PLUGS=192.168.50.101,192.168.50.102 \
     ile-shellyscraper:0.0.1
 ```
 
