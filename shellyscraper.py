@@ -1,41 +1,87 @@
 #!venv/bin/python3
+import asyncio
 import http.server
+import json
 import os
+import re
 import signal
 import socket
 import sys
 import threading
 import time
 import traceback
-import typing
 import urllib.parse
+from typing import Callable, List, Tuple
 
 import requests
+import websockets
+
+"""
+The script will scrape data from Shelly's devices and insert them into QuestDB.
+
+Supported devices:
+Name            | Model      | Table in QuestDB    | Scrape strategy
+Shelly Plug E   | SHPLG2-1   | shelly_plugs_meter1 | API polling
+Shelly Plug     | SHPLG-1    | shelly_plugs_meter1 | API polling
+Shelly Plug S   | SHPLG-S    | shelly_plugs_meter1 | API polling
+Shelly Plug US  | SHPLG-U1   | shelly_plugs_meter1 | API polling
+Shelly H&T      | SHHT-1     | shelly_ht_meter1    | webhook (act as action URL)
+Shelly Plus H&T | SNSN-0013A | shelly_ht_meter1    | receiving notifications (act as outbound WebSocket server)
+
+Device configuration:
+- Scape strategy: API polling
+  Pass the IP address of the device using the ILE_SHELLY_IPS environment variable.
+- Scape strategy: webhook
+  Configure your Shelly H&T devices so that the "report sensor values" URL is "http://{machine_ip}:9080/".
+- Scape strategy: receiving notification
+  Configure your device so that the outgoing WebSocket server is "ws://{machine_ip}:9081/".
+  
+You can configure the script using environment variables.
+Check the Env class below to determine what variables you can set.
+"""
+
+
+# --------------------- CONFIG ------------------------------------------------
+
+class Env:
+    # ILE_DEBUG=boolValueMaybeTrue
+    ILE_DEBUG: str = os.environ.get("ILE_DEBUG", "false")
+
+    # ILE_QUESTDB_HOST=ipv4host
+    # ILE_QUESTDB_PORT=intPort
+    ILE_QUESTDB_HOST: str = os.environ.get("ILE_QUESTDB_HOST", "localhost")
+    ILE_QUESTDB_PORT: str = os.environ.get("ILE_QUESTDB_PORT", "9009")
+
+    # ILE_SHELLY_IPS=comma-separated list of IPs
+    # List here the supported devices for which the script uses the 'API polling' strategy.
+    ILE_SHELLY_IPS: str = os.environ.get("ILE_SHELLY_IPS", "")
+
+    # ILE_SOCKET_TIMEOUT=intValue (seconds)
+    # ILE_HTTP_TIMEOUT=intValue (seconds)
+    ILE_SOCKET_TIMEOUT: str = os.environ.get("ILE_SOCKET_TIMEOUT", "10")
+    ILE_HTTP_TIMEOUT: str = os.environ.get("ILE_HTTP_TIMEOUT", "10")
+
+    # ILE_SCRAPE_INTERVAL=floatValue (seconds)
+    # ILE_BACKOFF_STRATEGY=comma-separated list of floats (seconds)
+    ILE_SCRAPE_INTERVAL: str = os.environ.get("ILE_SCRAPE_INTERVAL", "60")
+    ILE_BACKOFF_STRATEGY: str = os.environ.get("ILE_BACKOFF_STRATEGY", "0.5,1,3,3,5,60,90")
 
 
 class Config:
-    # ILE_QUESTDB_ADDRESS=ipv4host:port
-    questdb_address = (
-        os.environ.get("ILE_QUESTDB_ADDRESS").split(':', 1)[0],
-        int(os.environ.get("ILE_QUESTDB_ADDRESS").split(':', 1)[1])
-    )
+    debug: bool = Env.ILE_DEBUG.lower() == "true"
+    questdb_address: Tuple[str, int] = (Env.ILE_QUESTDB_HOST, int(Env.ILE_QUESTDB_PORT))
+    shelly_devices_ips: List[str] = list(filter(None, Env.ILE_SHELLY_IPS.split(",")))
 
-    # gen1 plugs:
-    #     Shelly Plug E SHPLG2-1
-    #     Shelly Plug SHPLG-1
-    #     Shelly Plug S SHPLG-S
-    #     Shelly Plug US SHPLG-U1
-    # ILE_SHELLY_GEN1_PLUGS=comma-separated list of IPs
-    shelly_gen1_plug_devices_ips = list(filter(None, os.environ.get("ILE_SHELLY_GEN1_PLUGS", "").split(",")))
+    questdb_socket_timeout_seconds: int = int(Env.ILE_SOCKET_TIMEOUT)
+    shelly_api_http_timeout_seconds: int = int(Env.ILE_HTTP_TIMEOUT)
 
-    questdb_socket_timeout_seconds = 10
-    shelly_api_http_timeout_seconds = 10
-
-    scrape_interval_seconds = 60
-    backoff_strategy_seconds = [0.5, 1, 3, 3, 5, 60, 90]
+    scrape_interval_seconds: int = int(Env.ILE_SCRAPE_INTERVAL)
+    backoff_strategy_seconds: List[float] = list(map(float, filter(None, Env.ILE_BACKOFF_STRATEGY.split(","))))
 
 
-def configure_sigterm_handler():
+# --------------------- HELPERS -----------------------------------------------
+
+def configure_sigterm_handler() -> threading.Event:
     sigterm_cnt = [0]
     sigterm_threading_event = threading.Event()
 
@@ -56,6 +102,11 @@ def configure_sigterm_handler():
     return sigterm_threading_event
 
 
+def log_debug(log_supplier: Callable[[], str]) -> None:
+    if Config.debug:
+        print(log_supplier(), file=sys.stderr)
+
+
 def print_exception(exception: BaseException) -> None:
     exc_type, exc_value, exc_traceback = sys.exc_info()
     co_filename = exc_traceback.tb_frame.f_code.co_filename
@@ -64,9 +115,27 @@ def print_exception(exception: BaseException) -> None:
     print(f"exception: {co_filename}:{exc_traceback.tb_lineno} ({co_name}) {format_exception_only}", file=sys.stderr)
 
 
+def http_call(device_ip: str, path_and_query: str) -> dict:
+    request = requests.get(f"http://{device_ip}/{path_and_query}", timeout=Config.shelly_api_http_timeout_seconds)
+    request.raise_for_status()
+    data = request.json()
+    log_debug(lambda: json.dumps(data, separators=(',', ':')))
+    return data
+
+
+# --------------------- QUESTDB -----------------------------------------------
+
 # ilp = InfluxDB line protocol
 # https://questdb.io/docs/reference/api/ilp/overview/
 def write_ilp_to_questdb(data: str) -> None:
+    if data is None or data == "":
+        return
+
+    # Fix ilp data.
+    # Remove name=value pairs where value is None.
+    if "None" in data:
+        data = re.sub(r'[a-zA-Z0-9_]+=None,?', '', data).replace(' ,', ' ').replace(', ', ' ')
+
     print(data, end='')
 
     # https://github.com/questdb/questdb.io/commit/35ca3c326ab0b3448ef9fdb39eb60f1bd45f8506
@@ -78,42 +147,65 @@ def write_ilp_to_questdb(data: str) -> None:
         sock.close()
 
 
-# Supported devices: all gen1 devices.
-def get_gen1_device_type_and_name(device_ip: str) -> typing.Tuple[str, str]:
+# --------------------- SHELLY Gen1&Gen2 --------------------------------------
+
+def shelly_get_device_gen_and_type(device_ip: str) -> Tuple[int, str]:
+    # https://shelly-api-docs.shelly.cloud/gen1/#shelly
+    # https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Shelly/#http-endpoint-shelly
+    shelly = http_call(device_ip, "shelly")
+
+    # gen2
+    if "gen" in shelly:
+        device_gen = shelly["gen"]
+
+        if device_gen == 2:
+            device_type = shelly["model"]
+        else:
+            device_type = None
+
+    # gen1
+    else:
+        device_gen = 1
+        device_type = shelly["type"]
+
+    return device_gen, device_type
+
+
+# --------------------- SHELLY Gen1 -------------------------------------------
+
+def shelly_get_gen1_device_info(device_ip: str) -> Tuple[str, str, str]:
     # https://shelly-api-docs.shelly.cloud/gen1/#settings
-    request = requests.get(f"http://{device_ip}/settings", timeout=Config.shelly_api_http_timeout_seconds)
-    request.raise_for_status()
-    settings = request.json()
-    # print(json.dumps(settings, separators=(',', ':')), file=sys.stderr)
+    settings = http_call(device_ip, "settings")
 
     device_type = settings["device"]["type"]
+    device_id = settings["device"]["hostname"]
     device_name = settings["name"]
-    return device_type, device_name
+
+    return device_type, device_id, device_name
 
 
-# Supported devices: gen1 plugs (SHPLG2-1, SHPLG-1, SHPLG-S, SHPLG-U1) and gen1 H&T (SHHT-1),
-def get_gen1_device_status_ilp(device_ip: str, device_type: str, device_name: str) -> str:
-    # https://shelly-api-docs.shelly.cloud/gen1/#status
-    request = requests.get(f"http://{device_ip}/status", timeout=Config.shelly_api_http_timeout_seconds)
-    request.raise_for_status()
-    status = request.json()
-    # print(json.dumps(status, separators=(',', ':')), file=sys.stderr)
-
+def shelly_get_gen1_device_status_ilp(device_ip: str, device_type: str, device_id: str, device_name: str) -> str:
     # https://shelly-api-docs.shelly.cloud/gen1/#shelly-plug-plugs-coiot
     if device_type in ("SHPLG2-1", "SHPLG-1", "SHPLG-S", "SHPLG-U1"):
-        return shelly_gen1_plug_status_to_ilp(device_name, status)
+        # https://shelly-api-docs.shelly.cloud/gen1/#status
+        # https://shelly-api-docs.shelly.cloud/gen1/#shelly-plug-plugs-status
+        status = http_call(device_ip, "status")
+        return shelly_gen1_plug_status_to_ilp(device_id, device_name, status)
 
     # https://shelly-api-docs.shelly.cloud/gen1/#shelly-h-amp-t-coiot
     if device_type == "SHHT-1":
-        return shelly_gen1_ht_status_to_ilp(device_name, status)
+        # https://shelly-api-docs.shelly.cloud/gen1/#status
+        # https://shelly-api-docs.shelly.cloud/gen1/#shelly-h-amp-t-status
+        status = http_call(device_ip, "status")
+        return shelly_gen1_ht_status_to_ilp(device_id, device_name, status)
 
-    print(f"get_gen1_device_status_ilp: unsupported device_type: {device_type}", file=sys.stderr)
+    print(f"The shelly_get_gen1_device_status_ilp failed for device_ip={device_ip} "
+          f"due to unsupported device_type={device_type}.", file=sys.stderr)
     return ""
 
 
-#  Supported devices: gen1 plugs (SHPLG2-1, SHPLG-1, SHPLG-S, SHPLG-U1).
-def shelly_gen1_plug_status_to_ilp(device_name: str, status) -> str:
-    # https://shelly-api-docs.shelly.cloud/gen1/#shelly-plug-plugs-status
+def shelly_gen1_plug_status_to_ilp(device_id: str, device_name: str, status: dict) -> str:
+    # status = https://shelly-api-docs.shelly.cloud/gen1/#shelly-plug-plugs-status
 
     timestamp = status["unixtime"]
     if timestamp == 0:
@@ -124,7 +216,7 @@ def shelly_gen1_plug_status_to_ilp(device_name: str, status) -> str:
     data = ""
 
     for idx, meter in enumerate(status["meters"]):
-        data += f"shelly_plugs_meter1,device_name={device_name},idx={idx} " \
+        data += f"shelly_plugs_meter1,device_id={device_id},device_name={device_name},idx={idx} " \
                 f"power={meter['power']}," \
                 f"overpower={meter['overpower']}," \
                 f"is_valid={meter['is_valid']}," \
@@ -136,7 +228,7 @@ def shelly_gen1_plug_status_to_ilp(device_name: str, status) -> str:
 
         # PlugS only
         if status.get("temperature", None) is not None:
-            data += f"shelly_plugs_temperature1,device_name={device_name} " \
+            data += f"shelly_plugs_temperature1,device_id={device_id},device_name={device_name} " \
                     f"overtemperature={status['overtemperature']}," \
                     f"tmp_tc={status['tmp']['tC']}," \
                     f"tmp_is_valid={status['tmp']['is_valid']} " \
@@ -145,9 +237,8 @@ def shelly_gen1_plug_status_to_ilp(device_name: str, status) -> str:
     return data
 
 
-# Supported devices: gen1 H&T (SHHT-1).
-def shelly_gen1_ht_status_to_ilp(device_name: str, status: typing.Dict[str, typing.Any]) -> str:
-    # https://shelly-api-docs.shelly.cloud/gen1/#shelly-h-amp-t-status
+def shelly_gen1_ht_status_to_ilp(device_id: str, device_name: str, status: dict) -> str:
+    # status = https://shelly-api-docs.shelly.cloud/gen1/#shelly-h-amp-t-status
 
     timestamp = status["unixtime"]
     if timestamp == 0:
@@ -155,7 +246,7 @@ def shelly_gen1_ht_status_to_ilp(device_name: str, status: typing.Dict[str, typi
     nano = "000000000"
 
     # InfluxDB line protocol data
-    data = f"shelly_ht_meter1,device_name={device_name} " \
+    data = f"shelly_ht_meter1,device_id={device_id},device_name={device_name} " \
            f"is_valid={status['is_valid']}," \
            f"tmp_tc={status['tmp']['tC']}," \
            f"tmp_is_valid={status['tmp']['is_valid']}," \
@@ -185,15 +276,156 @@ def shelly_gen1_ht_report_to_ilp(device_id: str, temp: str, hum: str) -> str:
     return data
 
 
-def gen1_plug_status_loop(sigterm_threading_event, device_ip):
+# Handler for Shelly H&T's action "report sensor values".
+# https://shelly-api-docs.shelly.cloud/gen1/#shelly-h-amp-t-settings-actions
+class ShellyGen1HtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+
+        device_ip = self.client_address[0]
+        query_string = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        is_valid_ht_report = "id" in query_string and "temp" in query_string and "hum" in query_string
+
+        if is_valid_ht_report:
+            device_id = query_string["id"][0]
+            temp = query_string["temp"][0]
+            hum = query_string["hum"][0]
+
+            data = shelly_gen1_ht_report_to_ilp(device_id, temp, hum)
+
+            try:
+                # The http connection is still in progress. The H&T device definitely has active Wi-Fi.
+                device_type, device_id, device_name = shelly_get_gen1_device_info(device_ip)
+                data += shelly_get_gen1_device_status_ilp(device_ip, device_type, device_id, device_name)
+
+            except BaseException as exception:
+                print_exception(exception)
+
+            # I/O operation that may be happening after the connection is closed.
+            questdb_thread = threading.Thread(target=write_ilp_to_questdb, args=(data,))
+            questdb_thread.daemon = False
+            questdb_thread.start()
+
+        else:
+            print(f"The ShellyGen1HtReportSensorValuesHandler failed for device_ip={device_ip} "
+                  f"due to unsupported query: '{self.path}'.", file=sys.stderr)
+
+
+# --------------------- SHELLY Gen2 -------------------------------------------
+
+def shelly_get_gen2_device_name(device_ip: str) -> str:
+    # https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Sys#sysgetconfig
+    sysconfig = http_call(device_ip, "rpc/Sys.GetConfig")
+    device_name = sysconfig["device"]["name"]
+    return device_name
+
+
+def shelly_get_gen2_device_status_ilp(device_ip: str, device_type: str, device_name: str) -> str:
+    print(f"The shelly_get_gen2_device_status_ilp failed for device_ip={device_ip} "
+          f"due to unsupported device_type={device_type}.", file=sys.stderr)
+    return ""
+
+
+def shelly_gen2_plusht_status_to_ilp(device_name: str, status: dict) -> str:
+    # status = status in "NotifyFullStatus" notification format
+    # https://shelly-api-docs.shelly.cloud/gen2/General/Notifications/#notifyfullstatus
+
+    # Required components: 'src', sys, devicepower:0, temperature:0, humidity:0
+    # https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Sys/
+    # https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/DevicePower/
+    # https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Temperature/
+    # https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Humidity/
+
+    timestamp = int(status["params"]["ts"] or 0)
+    if timestamp == 0:
+        timestamp = int(time.time())
+    nano = "000000000"
+
+    device_id = status["src"]
+
+    tmp_tc = status["params"]["temperature:0"]["tC"]
+    tmp_is_valid = tmp_tc is not None and "errors" not in status["params"]["temperature:0"]
+    hum_value = status["params"]["humidity:0"]["rh"]
+    hum_is_valid = hum_value is not None and "errors" not in status["params"]["humidity:0"]
+    is_valid = tmp_is_valid or hum_is_valid
+
+    bat_value = status["params"]["devicepower:0"]["battery"]["percent"]
+    bat_voltage = status["params"]["devicepower:0"]["battery"]["V"]
+
+    # InfluxDB line protocol data
+    data = f"shelly_ht_meter1,device_id={device_id},device_name={device_name} " \
+           f"is_valid={is_valid}," \
+           f"tmp_tc={tmp_tc}," \
+           f"tmp_is_valid={tmp_is_valid}," \
+           f"hum_value={hum_value}," \
+           f"hum_is_valid={hum_is_valid}," \
+           f"bat_value={bat_value}," \
+           f"bat_voltage={bat_voltage}," \
+           f"connect_retries=0," \
+           f"sensor_error=0 " \
+           f"{timestamp}{nano}\n"
+
+    return data
+
+
+async def shelly_gen2_outbound_websocket_handler(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
+    recv = await websocket.recv()
+    payload = json.loads(recv)
+
+    device_ip = websocket.remote_address[0]
+    src = payload["src"]
+
+    if src.startswith("shellyplusht-"):
+        # Only "NotifyFullStatus" messages are valuable.
+        # https://shelly-api-docs.shelly.cloud/gen2/General/Notifications/#notifyfullstatus
+        if payload["method"] != "NotifyFullStatus":
+            return
+
+        try:
+            # The websocket connection is still in progress. Device definitely has active Wi-Fi.
+            device_name = shelly_get_gen2_device_name(device_ip)
+
+        except BaseException as exception:
+            print_exception(exception)
+            device_name = None
+
+        data = shelly_gen2_plusht_status_to_ilp(device_name, payload)
+
+        # I/O operation that may be happening after the connection is closed.
+        questdb_thread = threading.Thread(target=write_ilp_to_questdb, args=(data,))
+        questdb_thread.daemon = False
+        questdb_thread.start()
+
+    else:
+        print(f"The shelly_gen2_outbound_websocket_handler failed for device_ip={device_ip} "
+              f"due to unsupported src={src}.", file=sys.stderr)
+
+
+# --------------------- Main --------------------------------------------------
+
+def shelly_device_status_loop(sigterm_threading_event, device_ip):
     backoff_idx = -1
 
     while True:
         try:
-            device_type, device_name = get_gen1_device_type_and_name(device_ip)
+            device_gen, device_type = shelly_get_device_gen_and_type(device_ip)
 
             while True:
-                data = get_gen1_device_status_ilp(device_ip, device_type, device_name)
+                if device_gen == 1:
+                    device_type, device_id, device_name = shelly_get_gen1_device_info(device_ip)
+                    data = shelly_get_gen1_device_status_ilp(device_ip, device_type, device_id, device_name)
+
+                elif device_gen == 2:
+                    device_name = shelly_get_gen2_device_name(device_ip)
+                    data = shelly_get_gen2_device_status_ilp(device_ip, device_type, device_name)
+
+                else:
+                    data = ""
+                    print(f"The shelly_device_status_loop failed for device_ip={device_ip} "
+                          f"due to unsupported device_gen={device_gen}.", file=sys.stderr)
+
                 write_ilp_to_questdb(data)
 
                 if sigterm_threading_event.wait(Config.scrape_interval_seconds):
@@ -212,43 +444,13 @@ def gen1_plug_status_loop(sigterm_threading_event, device_ip):
                 break
 
 
-class ShellyGen1HtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
-
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-
-        query_string = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        device_id = query_string.get("id", [None])[0]
-        temp = query_string.get("temp", [None])[0]
-        hum = query_string.get("hum", [None])[0]
-
-        if device_id is not None \
-                and temp is not None \
-                and hum is not None:
-            data = shelly_gen1_ht_report_to_ilp(device_id, temp, hum)
-
-            try:
-                device_ip = self.client_address[0]
-                # The http connection is still in progress. The H&T device definitely has active Wi-Fi.
-                device_type, device_name = get_gen1_device_type_and_name(device_ip)
-                data += get_gen1_device_status_ilp(device_ip, device_type, device_name)
-            except BaseException as exception:
-                print_exception(exception)
-
-            # This may already be happening after the connection is closed.
-            questdb_thread = threading.Thread(target=write_ilp_to_questdb, args=(data,))
-            questdb_thread.daemon = False
-            questdb_thread.start()
-
-
 def main():
     print("Config" + str(vars(Config)), file=sys.stderr)
 
     sigterm_threading_event = configure_sigterm_handler()
 
-    for device_ip in Config.shelly_gen1_plug_devices_ips:
-        status_thread = threading.Thread(target=gen1_plug_status_loop, args=(sigterm_threading_event, device_ip,))
+    for device_ip in Config.shelly_devices_ips:
+        status_thread = threading.Thread(target=shelly_device_status_loop, args=(sigterm_threading_event, device_ip,))
         status_thread.daemon = False
         status_thread.start()
 
@@ -258,6 +460,18 @@ def main():
     webhook_server_thread.daemon = True
     webhook_server_thread.start()
 
+    # Act as WebSocket server. Handle gen2 notifications.
+    # Let's mix classic http.server.HTTPServer with asyncio-based websockets!
+    async def shelly_gen2_outbound_websocket_server():
+        ws_server = await websockets.serve(shelly_gen2_outbound_websocket_handler, '0.0.0.0', 9081)
+        await ws_server.server.serve_forever()
+
+    # Horrible. Works and is compatible with sigterm_threading_event.
+    websocket_sever_thread = threading.Thread(target=lambda: asyncio.run(shelly_gen2_outbound_websocket_server()))
+    websocket_sever_thread.daemon = True
+    websocket_sever_thread.start()
+
+    print("STARTED", file=sys.stderr)
     sigterm_threading_event.wait()
     return 0
 

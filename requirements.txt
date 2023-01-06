@@ -1,1 +1,2 @@
 requests>=2,<3
+websockets>=10,<11
