@@ -1,14 +1,23 @@
 # shellyscraper-ile
 
-Scrape the data from Shelly Plug (S) and Shelly H&T, insert them into QuestDB, and visualize the data in Grafana.
+Collect data from Shelly devices, insert them into QuestDB and visualize data in Grafana.
+
+Supported devices:
+
+- Shelly Plug (SHPLG-1)
+- Shelly Plug S (SHPLG-S)
+- Shelly Plug US (SHPLG-U1)
+- Shelly Plug E (SHPLG2-1)
+- Shelly H&T (SHHT-1)
+- Shelly Plus H&T (SNSN-0013A)
 
 <img src="screenshot1.png" alt="screenshot1" width="1000" />
 
 ## stack
 
-The solution consists of:
+The solution consists of the following:
 
-* Shelly Plug/Shelly Plug S/Shelly H&T (the device you must buy)
+* supported Shelly devices (the devices you have)
 * QuestDB (database)
 * Grafana (data visualization tool)
 * scraper (a custom script that retrieves data using a device API and inserts them into the database)
@@ -17,7 +26,7 @@ The solution consists of:
 ## configuration
 
 * Assign a static IP address to your Shelly device(s) on your router.
-* Complete the `shellyscraper.py` script (somewhere at the beginning is the config section).
+* See the description of the `shellyscraper.py` script to learn about the configuration options.
 * Create a docker network and docker volumes for data storage.
 
 ```shell
@@ -35,7 +44,7 @@ docker run -d --restart=unless-stopped \
     --name=ile-questdb \
     -p 9000:9000 -p 9009:9009 -p 8812:8812 -p 9003:9003 \
     -v ile-questdb-data:/root/.questdb/ \
-    questdb/questdb:6.5.5
+    questdb/questdb:6.6.1
 ```
 
 ```shell
@@ -52,23 +61,22 @@ docker run -d --restart=unless-stopped \
 docker build -t "ile-shellyscraper:0.0.1" -f Dockerfile .
 ```
 
-As the value of the ILE_SHELLY_GEN1_PLUGS env, enter the comma-separated list of IPs assigned to your Shelly Plug (S) devices.
+As the value of the ILE_SHELLY_IPS env, enter the comma-separated list of IPs assigned to your Shelly plugs devices.
+
 ```shell
 docker run -d --restart=unless-stopped \
     --net ile-network \
     --name=ile-shellyscraper \
     -p 9080:9080 \
-    -e ILE_QUESTDB_ADDRESS=192.168.130.10:9009 \
-    -e ILE_SHELLY_GEN1_PLUGS=192.168.50.101,192.168.50.102 \
+    -p 9081:9081 \
+    -e ILE_QUESTDB_HOST=192.168.130.10 \
+    -e ILE_QUESTDB_PORT=9009 \
+    -e ILE_SHELLY_IPS=192.168.50.101,192.168.50.102 \
     ile-shellyscraper:0.0.1
 ```
 
-* Log in to grafana (admin:admin), add data source (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and import
-  dashboards (`grafana-dashboard-shellyplugs1.json`, `grafana-dashboard-shellyht1.json`, `grafana-dashboard-shellyht2.json`).
-* Configure your Shelly H&T devices so that the "report sensor values" url is "http://<docker_machine_ip>:9080".
+* Log in to the grafana (admin:admin), add the data source (https://questdb.io/tutorial/2020/10/19/grafana/#create-a-data-source), and
+  import dashboards (`grafana-dashboard-*.json` files).
+* Configure your Shelly H&T devices so that the "report sensor values" URL is "http://{docker_machine_ip}:9080/".
+* Configure your Shelly Plus H&T devices so that the outgoing WebSocket server is "ws://{docker_machine_ip}:9081/".
 * Secure the solution (some passwords? firewall rules?) if this is to be available outside your home network.
-
-## other things worth mentioning
-
-Perhaps you prefer the device to send data to the message broker instead of scraping data using an API.  
-If so, check another solution: https://questdb.io/tutorial/2020/08/25/questitto/

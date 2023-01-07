@@ -21,10 +21,10 @@ The script will scrape data from Shelly's devices and insert them into QuestDB.
 
 Supported devices:
 Name            | Model      | Table in QuestDB    | Scrape strategy
-Shelly Plug E   | SHPLG2-1   | shelly_plugs_meter1 | API polling
 Shelly Plug     | SHPLG-1    | shelly_plugs_meter1 | API polling
 Shelly Plug S   | SHPLG-S    | shelly_plugs_meter1 | API polling
 Shelly Plug US  | SHPLG-U1   | shelly_plugs_meter1 | API polling
+Shelly Plug E   | SHPLG2-1   | shelly_plugs_meter1 | API polling
 Shelly H&T      | SHHT-1     | shelly_ht_meter1    | webhook (act as action URL)
 Shelly Plus H&T | SNSN-0013A | shelly_ht_meter1    | receiving notifications (act as outbound WebSocket server)
 
@@ -32,9 +32,9 @@ Device configuration:
 - Scape strategy: API polling
   Pass the IP address of the device using the ILE_SHELLY_IPS environment variable.
 - Scape strategy: webhook
-  Configure your Shelly H&T devices so that the "report sensor values" URL is "http://{machine_ip}:9080/".
+  Configure your devices so that the "report sensor values" URL is "http://{machine_ip}:9080/".
 - Scape strategy: receiving notification
-  Configure your device so that the outgoing WebSocket server is "ws://{machine_ip}:9081/".
+  Configure your devices so that the outgoing WebSocket server is "ws://{machine_ip}:9081/".
   
 You can configure the script using environment variables.
 Check the Env class below to determine what variables you can set.
