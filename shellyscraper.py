@@ -308,7 +308,7 @@ class ShellyGen1HtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
             data = shelly_gen1_ht_report_to_ilp(device_id, temp, hum)
 
             try:
-                # The http connection is still in progress. The H&T device definitely has active Wi-Fi.
+                # The http connection is still in progress. Device has active Wi-Fi.
                 device_type, device_id, device_name = shelly_get_gen1_device_info(device_ip)
                 data += shelly_get_gen1_device_status_ilp(device_ip, device_type, device_id, device_name)
 
@@ -396,7 +396,7 @@ async def shelly_gen2_outbound_websocket_handler(websocket: websockets.WebSocket
         # https://shelly-api-docs.shelly.cloud/gen2/General/SleepManagementForBatteryDevices
         if payload["method"] == "NotifyFullStatus":
             try:
-                # The websocket connection is still in progress. Device definitely has active Wi-Fi.
+                # The websocket connection is still in progress. Device has active Wi-Fi.
                 device_name = shelly_get_gen2_device_name(device_ip)
 
             except BaseException as exception:
