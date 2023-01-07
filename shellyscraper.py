@@ -391,25 +391,27 @@ async def shelly_gen2_outbound_websocket_handler(websocket: websockets.WebSocket
     src = payload["src"]
 
     if src.startswith("shellyplusht-"):
-        # Only "NotifyFullStatus" messages are valuable.
+        # "NotifyFullStatus" messages are valuable.
         # https://shelly-api-docs.shelly.cloud/gen2/General/Notifications/#notifyfullstatus
-        if payload["method"] != "NotifyFullStatus":
-            return
+        # https://shelly-api-docs.shelly.cloud/gen2/General/SleepManagementForBatteryDevices
+        if payload["method"] == "NotifyFullStatus":
+            try:
+                # The websocket connection is still in progress. Device definitely has active Wi-Fi.
+                device_name = shelly_get_gen2_device_name(device_ip)
 
-        try:
-            # The websocket connection is still in progress. Device definitely has active Wi-Fi.
-            device_name = shelly_get_gen2_device_name(device_ip)
+            except BaseException as exception:
+                print_exception(exception)
+                device_name = None
 
-        except BaseException as exception:
-            print_exception(exception)
-            device_name = None
+            data = shelly_gen2_plusht_status_to_ilp(device_name, payload)
 
-        data = shelly_gen2_plusht_status_to_ilp(device_name, payload)
+            # I/O operation that may be happening after the connection is closed.
+            questdb_thread = threading.Thread(target=write_ilp_to_questdb, args=(data,))
+            questdb_thread.daemon = False
+            questdb_thread.start()
 
-        # I/O operation that may be happening after the connection is closed.
-        questdb_thread = threading.Thread(target=write_ilp_to_questdb, args=(data,))
-        questdb_thread.daemon = False
-        questdb_thread.start()
+            # https://shelly-api-docs.shelly.cloud/gen2/General/SleepManagementForBatteryDevices
+            await websocket.send("EndOfQueue")
 
     else:
         print_(f"The shelly_gen2_outbound_websocket_handler failed for device_ip={device_ip} "
