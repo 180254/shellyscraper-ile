@@ -1,5 +1,6 @@
 #!venv/bin/python3
 import asyncio
+import datetime
 import http.server
 import json
 import os
@@ -81,6 +82,17 @@ class Config:
 
 # --------------------- HELPERS -----------------------------------------------
 
+def print_(*args, **kwargs) -> None:
+    timestamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+    new_args = (timestamp,) + args
+    print(*new_args, **kwargs)
+
+
+def print_debug(msg_supplier: Callable[[], str]) -> None:
+    if Config.debug:
+        print_(msg_supplier())
+
+
 def configure_sigterm_handler() -> threading.Event:
     sigterm_cnt = [0]
     sigterm_threading_event = threading.Event()
@@ -90,10 +102,10 @@ def configure_sigterm_handler() -> threading.Event:
 
         sigterm_cnt[0] += 1
         if sigterm_cnt[0] == 1:
-            print(f"Program interrupted by the {signal_name}, graceful shutdown in progress.", file=sys.stderr)
+            print_(f"Program interrupted by the {signal_name}, graceful shutdown in progress.", file=sys.stderr)
             sigterm_threading_event.set()
         else:
-            print(f"Program interrupted by the {signal_name} again, forced shutdown in progress.", file=sys.stderr)
+            print_(f"Program interrupted by the {signal_name} again, forced shutdown in progress.", file=sys.stderr)
             sys.exit(-1)
 
     for some_signal in [signal.SIGTERM, signal.SIGINT]:
@@ -102,9 +114,8 @@ def configure_sigterm_handler() -> threading.Event:
     return sigterm_threading_event
 
 
-def log_debug(log_supplier: Callable[[], str]) -> None:
-    if Config.debug:
-        print(log_supplier(), file=sys.stderr)
+def json_dumps(data: dict) -> str:
+    return json.dumps(data, separators=(',', ':'))
 
 
 def print_exception(exception: BaseException) -> None:
@@ -112,14 +123,14 @@ def print_exception(exception: BaseException) -> None:
     co_filename = exc_traceback.tb_frame.f_code.co_filename
     co_name = exc_traceback.tb_frame.f_code.co_name
     format_exception_only = traceback.format_exception_only(type(exception), exception)[0].strip()
-    print(f"exception: {co_filename}:{exc_traceback.tb_lineno} ({co_name}) {format_exception_only}", file=sys.stderr)
+    print_(f"exception: {co_filename}:{exc_traceback.tb_lineno} ({co_name}) {format_exception_only}", file=sys.stderr)
 
 
 def http_call(device_ip: str, path_and_query: str) -> dict:
     request = requests.get(f"http://{device_ip}/{path_and_query}", timeout=Config.shelly_api_http_timeout_seconds)
     request.raise_for_status()
     data = request.json()
-    log_debug(lambda: json.dumps(data, separators=(',', ':')))
+    print_debug(lambda: json_dumps(data))
     return data
 
 
@@ -136,7 +147,7 @@ def write_ilp_to_questdb(data: str) -> None:
     if "None" in data:
         data = re.sub(r'[a-zA-Z0-9_]+=None,?', '', data).replace(' ,', ' ').replace(', ', ' ')
 
-    print(data, end='')
+    print_(data, end='')
 
     # https://github.com/questdb/questdb.io/commit/35ca3c326ab0b3448ef9fdb39eb60f1bd45f8506
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -199,8 +210,8 @@ def shelly_get_gen1_device_status_ilp(device_ip: str, device_type: str, device_i
         status = http_call(device_ip, "status")
         return shelly_gen1_ht_status_to_ilp(device_id, device_name, status)
 
-    print(f"The shelly_get_gen1_device_status_ilp failed for device_ip={device_ip} "
-          f"due to unsupported device_type={device_type}.", file=sys.stderr)
+    print_(f"The shelly_get_gen1_device_status_ilp failed for device_ip={device_ip} "
+           f"due to unsupported device_type={device_type}.", file=sys.stderr)
     return ""
 
 
@@ -287,6 +298,7 @@ class ShellyGen1HtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
         device_ip = self.client_address[0]
         query_string = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         is_valid_ht_report = "id" in query_string and "temp" in query_string and "hum" in query_string
+        print_debug(lambda: self.path)
 
         if is_valid_ht_report:
             device_id = query_string["id"][0]
@@ -309,8 +321,8 @@ class ShellyGen1HtReportSensorValuesHandler(http.server.BaseHTTPRequestHandler):
             questdb_thread.start()
 
         else:
-            print(f"The ShellyGen1HtReportSensorValuesHandler failed for device_ip={device_ip} "
-                  f"due to unsupported query: '{self.path}'.", file=sys.stderr)
+            print_(f"The ShellyGen1HtReportSensorValuesHandler failed for device_ip={device_ip} "
+                   f"due to unsupported query: '{self.path}'.", file=sys.stderr)
 
 
 # --------------------- SHELLY Gen2 -------------------------------------------
@@ -323,8 +335,8 @@ def shelly_get_gen2_device_name(device_ip: str) -> str:
 
 
 def shelly_get_gen2_device_status_ilp(device_ip: str, device_type: str, device_name: str) -> str:
-    print(f"The shelly_get_gen2_device_status_ilp failed for device_ip={device_ip} "
-          f"due to unsupported device_type={device_type}.", file=sys.stderr)
+    print_(f"The shelly_get_gen2_device_status_ilp failed for device_ip={device_ip} "
+           f"due to unsupported device_type={device_type}.", file=sys.stderr)
     return ""
 
 
@@ -373,6 +385,7 @@ def shelly_gen2_plusht_status_to_ilp(device_name: str, status: dict) -> str:
 async def shelly_gen2_outbound_websocket_handler(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
     recv = await websocket.recv()
     payload = json.loads(recv)
+    print_debug(lambda: json_dumps(payload))
 
     device_ip = websocket.remote_address[0]
     src = payload["src"]
@@ -399,8 +412,8 @@ async def shelly_gen2_outbound_websocket_handler(websocket: websockets.WebSocket
         questdb_thread.start()
 
     else:
-        print(f"The shelly_gen2_outbound_websocket_handler failed for device_ip={device_ip} "
-              f"due to unsupported src={src}.", file=sys.stderr)
+        print_(f"The shelly_gen2_outbound_websocket_handler failed for device_ip={device_ip} "
+               f"due to unsupported src={src}.", file=sys.stderr)
 
 
 # --------------------- Main --------------------------------------------------
@@ -423,8 +436,8 @@ def shelly_device_status_loop(sigterm_threading_event, device_ip):
 
                 else:
                     data = ""
-                    print(f"The shelly_device_status_loop failed for device_ip={device_ip} "
-                          f"due to unsupported device_gen={device_gen}.", file=sys.stderr)
+                    print_(f"The shelly_device_status_loop failed for device_ip={device_ip} "
+                           f"due to unsupported device_gen={device_gen}.", file=sys.stderr)
 
                 write_ilp_to_questdb(data)
 
@@ -445,7 +458,7 @@ def shelly_device_status_loop(sigterm_threading_event, device_ip):
 
 
 def main():
-    print("Config" + str(vars(Config)), file=sys.stderr)
+    print_("Config" + str(vars(Config)), file=sys.stderr)
 
     sigterm_threading_event = configure_sigterm_handler()
 
@@ -471,7 +484,7 @@ def main():
     websocket_sever_thread.daemon = True
     websocket_sever_thread.start()
 
-    print("STARTED", file=sys.stderr)
+    print_("STARTED", file=sys.stderr)
     sigterm_threading_event.wait()
     return 0
 
