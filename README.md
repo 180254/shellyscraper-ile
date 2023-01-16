@@ -8,6 +8,10 @@ Supported devices:
 - Shelly Plug S (SHPLG-S)
 - Shelly Plug US (SHPLG-U1)
 - Shelly Plug E (SHPLG2-1)
+- Shelly Plus Plug IT (SNPL-00110IT)
+- Shelly Plus Plug S (SNPL-00112EU)
+- Shelly Plus Plug UK (SNPL-00112UK)
+- Shelly Plus Plug US (SNPL-00116US)
 - Shelly H&T (SHHT-1)
 - Shelly Plus H&T (SNSN-0013A)
 
@@ -72,6 +76,7 @@ docker run -d --restart=unless-stopped \
     -e ILE_QUESTDB_HOST=192.168.130.10 \
     -e ILE_QUESTDB_PORT=9009 \
     -e ILE_SHELLY_IPS=192.168.50.101,192.168.50.102 \
+    -e ILE_DEBUG=false \
     ile-shellyscraper:0.0.1
 ```
 
