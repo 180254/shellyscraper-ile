@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 3,
-  "iteration": 1668349190606,
+  "iteration": 1675707905205,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -75,7 +75,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -157,7 +157,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -224,7 +224,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -331,7 +331,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -446,13 +446,13 @@
           "type": "postgres",
           "uid": "${datasource}"
         },
-        "definition": "select distinct device_id from shelly_ht_meter2 where $__timeFilter(timestamp)\n",
+        "definition": "select distinct device_id from shelly_ht_meter2 where $__timeFilter(timestamp) and device_id is not null\n",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "device_id",
         "options": [],
-        "query": "select distinct device_id from shelly_ht_meter2 where $__timeFilter(timestamp)\n",
+        "query": "select distinct device_id from shelly_ht_meter2 where $__timeFilter(timestamp) and device_id is not null\n",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -469,6 +469,6 @@
   "timezone": "browser",
   "title": "shellyht2",
   "uid": "shellyht2",
-  "version": 12,
+  "version": 15,
   "weekStart": ""
 }

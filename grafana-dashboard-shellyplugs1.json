@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 2,
-  "iteration": 1668348930552,
+  "iteration": 1675707929272,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -83,7 +83,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -165,7 +165,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -249,7 +249,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -457,7 +457,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -541,7 +541,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -648,27 +648,34 @@
             ]
           },
           {
-            "__systemRef": "hideSeriesFrom",
             "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "power",
-                  "average"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
+              "id": "byName",
+              "options": "voltage"
             },
             "properties": [
               {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 180
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 280
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bool"
               }
             ]
           }
@@ -734,70 +741,70 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with\n    shelly_plugs_meter1b as (\n        select timestamp, total\n        from shelly_plugs_meter1\n        where\n          $__interval_ms <= 300000\n          and device_name = '$device_name' and idx = '$idx' and is_valid = true\n          and timestamp between dateadd('m', -15, $__timeFrom()) and $__timeTo()\n    )\nselect\n    time, \n    (case\n        when total_is_ordered then ((((total_max-total_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0)\n        else null end\n    ) as 15minutesRollingAverage\nfrom (\n    select\n        timestamp as time,\n        first(total) as total_min,\n        last(total) as total_max,\n        isOrdered(cast(total AS long)) as total_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from shelly_plugs_meter1b t1\n        inner join shelly_plugs_meter1b t2\n        on t2.timestamp between dateadd('m', -15, t1.timestamp) and t1.timestamp\n        where $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
-          "refId": "15minutesRollingAverage",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "column"
-              }
-            ]
-          ],
-          "timeColumn": "time",
-          "where": [
-            {
-              "name": "$__timeFilter",
-              "params": [],
-              "type": "macro"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "${datasource}"
-          },
-          "format": "time_series",
-          "group": [],
-          "hide": false,
-          "metricColumn": "none",
-          "rawQuery": true,
-          "rawSql": "with\n    shelly_plugs_meter1b as (\n        select timestamp, total\n        from shelly_plugs_meter1\n        where\n          $__interval_ms <= 600000\n          and device_name = '$device_name' and idx = '$idx' and is_valid = true\n          and timestamp between dateadd('m', -60, $__timeFrom()) and $__timeTo()\n    )\nselect\n    time, \n    (case\n        when total_is_ordered then ((((total_max-total_min)*(1.0/60.0))/datediff('s', timestamp_min, timestamp_max))*3600.0)\n        else null end\n    ) as 1hourRollingAverage\nfrom (\n    select\n        timestamp as time,\n        first(total) as total_min,\n        last(total) as total_max,\n        isOrdered(cast(total AS long)) as total_is_ordered,\n        first(time2) as timestamp_min,\n        last(time2) as timestamp_max\n    from (\n        select\n            t1.timestamp,\n            t2.timestamp as time2,\n            first(t2.total) as total\n        from shelly_plugs_meter1b t1\n        inner join shelly_plugs_meter1b t2\n        on t2.timestamp between dateadd('m', -60, t1.timestamp) and t1.timestamp\n        where $__timeFilter(t1.timestamp)\n        sample by $__interval\n    ) timestamp(timestamp)\n) timestamp(time)",
-          "refId": "1hourRollingAverage",
-          "select": [
-            [
-              {
-                "params": [
-                  "value"
-                ],
-                "type": "column"
-              }
-            ]
-          ],
-          "timeColumn": "time",
-          "where": [
-            {
-              "name": "$__timeFilter",
-              "params": [],
-              "type": "macro"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "${datasource}"
-          },
-          "format": "time_series",
-          "group": [],
-          "hide": false,
-          "metricColumn": "none",
-          "rawQuery": true,
           "rawSql": "with\n    shelly_plugs_meter1b as (\n        select timestamp, total\n        from shelly_plugs_meter1\n        where device_name = '$device_name' and idx = '$idx' and is_valid = true and $__timeFilter(timestamp)\n    ),\n    far_dates_t as (\n      select \n        cast($__unixEpochTo()*1000000L as timestamp) as timestamp_max,\n        cast($__unixEpochFrom()*1000000L as timestamp) as timestamp_min\n    ),\n    consumption_Wm_t as (\n        select\n            cast(0 as timestamp) as time,\n            nsum(consumption) as value\n        from (\n            select (case when t1.total >= t2.total then t1.total-t2.total else null end) as consumption\n            from shelly_plugs_meter1b t1\n            lt join shelly_plugs_meter1b t2\n        )\n    ),\n    average_t as (\n        select\n            cast(0 as timestamp) as time,\n            (value*1.0/datediff('m', timestamp_min, timestamp_max)) as value\n        from consumption_Wm_t\n        cross join far_dates_t\n    )\nselect timestamp_max as time, value as average from average_t cross join far_dates_t\nunion\nselect timestamp_min as time, value as average from average_t cross join far_dates_t\n",
           "refId": "average",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select \n    timestamp as time,\n    avg(voltage) as voltage\nfrom shelly_plugs_meter1\nwhere\n    device_name = '$device_name'\n    and idx = '$idx'\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
+          "refId": "voltage",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${datasource}"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "select\n    timestamp as time,\n    coalesce(is_valid, is_overpower, is_overvoltage, is_undervoltage, is_overcurrent, 0) as errors\nfrom (\n  select \n      timestamp,\n      nullif(min(1-cast(is_valid as INT)), 0) as is_valid,\n      nullif(min(cast(is_overpower as INT)), 0) as is_overpower,\n      nullif(min(cast(is_overvoltage as INT)), 0) as is_overvoltage,\n      nullif(min(cast(is_undervoltage as INT)), 0) as is_undervoltage,\n      nullif(min(cast(is_overcurrent as INT)), 0) as is_overcurrent\n  from shelly_plugs_meter1\n  where\n      device_name = '$device_name'\n      and $__timeFilter(timestamp)\n  sample by $__interval fill(null)\n)",
+          "refId": "errors",
           "select": [
             [
               {
@@ -982,6 +989,29 @@
       {
         "current": {
           "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "${datasource}"
+        },
+        "definition": "select distinct device_id from shelly_plugs_meter1 where $__timeFilter(timestamp)\n",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "device_id",
+        "options": [],
+        "query": "select distinct device_id from shelly_plugs_meter1 where $__timeFilter(timestamp)\n",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
           "text": "shelly-plugs-0-livingroom",
           "value": "shelly-plugs-0-livingroom"
         },
@@ -1087,6 +1117,6 @@
   "timezone": "browser",
   "title": "shellyplugs1",
   "uid": "shellyplugs1",
-  "version": 12,
+  "version": 25,
   "weekStart": ""
 }

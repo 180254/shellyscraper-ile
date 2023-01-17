@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 1,
-  "iteration": 1668349159160,
+  "iteration": 1675707728899,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -88,7 +88,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -155,7 +155,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -281,7 +281,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -376,7 +376,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -443,7 +443,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -569,7 +569,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -665,7 +665,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -715,6 +715,8 @@
           "custom": {
             "axisLabel": "",
             "axisPlacement": "auto",
+            "axisSoftMax": 0,
+            "axisSoftMin": 0,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 1,
@@ -730,7 +732,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -769,7 +771,7 @@
               },
               {
                 "id": "custom.axisSoftMax",
-                "value": 3
+                "value": 6
               }
             ]
           },
@@ -792,8 +794,48 @@
                 "value": {
                   "legend": false,
                   "tooltip": false,
-                  "viz": true
+                  "viz": false
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "bat_voltage_shellyht-.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 2
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "bat_voltage_shellyplusht-.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 4
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 6
               }
             ]
           }
@@ -828,7 +870,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(bat_value) as bat_value,\n    concat('bat_value_', device_name) as metric\nfrom\n    shelly_ht_meter1\nwhere\n    device_name in ($device_name)\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
+          "rawSql": "select \n    timestamp as time,\n    avg(bat_value) as bat_value,\n    concat('bat_value_', ${bat_metric:raw}) as metric\nfrom\n    shelly_ht_meter1\nwhere\n    device_id in (\n        select \n            distinct device_id\n        from\n            shelly_ht_meter1\n        where\n            device_name in ($device_name)\n            and device_id is not null\n            and is_valid = true\n            and $__timeFilter(timestamp)\n    )\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "bat_value",
           "select": [
             [
@@ -859,7 +901,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \n    timestamp as time,\n    avg(bat_voltage) as bat_voltage,\n    concat('bat_voltage_', device_name) as metric\nfrom\n    shelly_ht_meter1\nwhere\n    device_name in ($device_name)\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
+          "rawSql": "select \n    timestamp as time,\n    avg(bat_voltage) as bat_voltage,\n    concat('bat_voltage_', ${bat_metric:raw}) as metric\nfrom\n    shelly_ht_meter1\nwhere\n    device_id in (\n        select \n            distinct device_id\n        from\n            shelly_ht_meter1\n        where\n            device_name in ($device_name)\n            and device_id is not null\n            and is_valid = true\n            and $__timeFilter(timestamp)\n    )\n    and is_valid = true\n    and $__timeFilter(timestamp)\nsample by $__interval fill(null)",
           "refId": "bat_voltage",
           "select": [
             [
@@ -931,7 +973,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -984,8 +1026,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-blue",
-                "value": null
+                "color": "super-light-blue"
               }
             ]
           },
@@ -1014,7 +1055,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -1067,8 +1108,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "super-light-blue",
-                "value": null
+                "color": "super-light-blue"
               }
             ]
           },
@@ -1097,7 +1137,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.14",
+      "pluginVersion": "8.5.15",
       "targets": [
         {
           "datasource": {
@@ -1168,18 +1208,45 @@
           "type": "postgres",
           "uid": "${datasource}"
         },
-        "definition": "select distinct device_name from shelly_ht_meter1 where $__timeFilter(timestamp)\n",
+        "definition": "select distinct device_name from shelly_ht_meter1 where $__timeFilter(timestamp) and device_name is not null\n",
         "hide": 0,
         "includeAll": true,
-        "multi": false,
+        "multi": true,
         "name": "device_name",
         "options": [],
-        "query": "select distinct device_name from shelly_ht_meter1 where $__timeFilter(timestamp)\n",
+        "query": "select distinct device_name from shelly_ht_meter1 where $__timeFilter(timestamp) and device_name is not null\n",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 5,
         "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "device_id",
+          "value": "device_id"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "bat_metric",
+        "options": [
+          {
+            "selected": true,
+            "text": "device_id",
+            "value": "device_id"
+          },
+          {
+            "selected": false,
+            "text": "device_id+device_name",
+            "value": "device_id,'_',device_name"
+          }
+        ],
+        "query": "device_id, device_id+device_name : device_id\\,'_'\\,device_name",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
       }
     ]
   },
@@ -1191,6 +1258,6 @@
   "timezone": "browser",
   "title": "shellyht1",
   "uid": "shellyht1",
-  "version": 30,
+  "version": 50,
   "weekStart": ""
 }
