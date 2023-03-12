@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 3,
-  "iteration": 1675707905205,
+  "iteration": 1678625218741,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -75,7 +75,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -157,7 +157,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -438,7 +438,7 @@
       },
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "shellyht-772D81",
           "value": "shellyht-772D81"
         },

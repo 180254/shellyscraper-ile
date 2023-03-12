@@ -25,7 +25,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 1,
-  "iteration": 1675707728899,
+  "iteration": 1678625271238,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -88,7 +88,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -281,7 +281,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -376,7 +376,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -569,7 +569,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -665,7 +665,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -973,7 +973,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.15",
+      "pluginVersion": "8.5.21",
       "targets": [
         {
           "datasource": {
@@ -1201,8 +1201,12 @@
       {
         "current": {
           "selected": false,
-          "text": "All",
-          "value": "$__all"
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": {
           "type": "postgres",
