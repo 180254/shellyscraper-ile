@@ -1,3 +1,7 @@
+obsolete, superseded by: https://github.com/180254/ile
+
+---
+
 # shellyscraper-ile
 
 Collect data from Shelly devices, insert them into QuestDB and visualize data in Grafana.
